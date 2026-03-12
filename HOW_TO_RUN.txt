@@ -1,0 +1,38 @@
+===================================================
+  FITBOT PRO — HOW TO RUN
+===================================================
+
+STEP 1: Open your terminal / command prompt
+
+STEP 2: Navigate INTO this folder:
+  cd path/to/fitbot_pro
+
+STEP 3: Install dependencies (first time only):
+  pip install flask authlib requests
+
+STEP 4: Run the app:
+  python app.py
+
+STEP 5: Open your browser and go to:
+  http://127.0.0.1:5000
+
+===================================================
+  IMPORTANT — READ THIS IF EDIT PROFILE IS BROKEN
+===================================================
+
+You MUST run app.py from INSIDE the fitbot_pro folder.
+Do NOT use an app.py from any other previous version.
+
+When Flask starts, your terminal should show:
+  >>> FITBOT PRO app.py IS RUNNING — v3 with edit-profile + logout routes <<<
+
+If it shows anything different, you are running the wrong file.
+
+Routes included in this version:
+  /edit-profile   ← Edit Profile page
+  /logout         ← Logout
+  /xp-status      ← Live XP updates on dashboard
+  /diet           ← Diet plan (crash fixed)
+  /settings       ← Dark mode toggle
+
+===================================================

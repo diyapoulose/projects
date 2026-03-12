@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FitBot — Diet Plan</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"></head>
+<body>
+<a href="/dashboard" class="back-btn">&#8592;</a>
+<div class="page" style="padding-top:68px; align-items:flex-start;">
+<div class="card fade-in">
+
+  <h2 style="margin-bottom:3px;">Diet Plan</h2>
+  <p style="margin-bottom:16px;">Personalised for your goal and body.</p>
+
+  <div class="goal-bar">
+    <div><div class="label">Goal</div><div class="val">{{ goal }}</div></div>
+    <div style="text-align:right;"><div class="label">Daily Target</div><div class="val">{{ calories }} kcal</div></div>
+  </div>
+
+  {% if bmi %}
+  <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);padding:11px 13px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;">
+    <span style="font-size:0.82rem;color:var(--text2);">Your BMI</span>
+    <span style="font-size:1rem;font-weight:700;color:var(--teal);">{{ bmi }}</span>
+  </div>
+  {% endif %}
+
+  <div class="sec-lbl">Macronutrients</div>
+  <div class="macro-table">
+    <div class="macro-row"><span>Protein</span><b>{{ protein }}g</b></div>
+    <div class="macro-row"><span>Carbohydrates</span><b>{{ carbs }}g</b></div>
+    <div class="macro-row"><span>Fats</span><b>{{ fats }}g</b></div>
+  </div>
+  <p style="font-size:0.78rem; margin-bottom:16px;">A flexible guide. Consistency matters more than precision.</p>
+
+  <div class="sec-lbl">Meal Structure</div>
+  <div class="meal-item"><div class="meal-bar"></div><div class="meal-info"><div class="m-title">Breakfast</div><div class="m-desc">Protein + fibre to start the day</div></div></div>
+  <div class="meal-item"><div class="meal-bar"></div><div class="meal-info"><div class="m-title">Lunch</div><div class="m-desc">Balanced carbohydrates and vegetables</div></div></div>
+  <div class="meal-item"><div class="meal-bar"></div><div class="meal-info"><div class="m-title">Snack</div><div class="m-desc">Fruit, nuts, or yoghurt</div></div></div>
+  <div class="meal-item" style="margin-bottom:14px;"><div class="meal-bar"></div><div class="meal-info"><div class="m-title">Dinner</div><div class="m-desc">Light, easy to digest</div></div></div>
+  <p style="font-size:0.78rem; margin-bottom:16px;">No food is off-limits. Overall balance wins.</p>
+
+  {% if videos %}
+  <div class="sec-lbl">Cooking Guides</div>
+  {% for v in videos %}
+  <div class="vid-card">
+    <div class="vid-title">{{ v.title }}</div>
+    <iframe width="100%" height="185" src="https://www.youtube.com/embed/{{ v.id }}" frameborder="0" allowfullscreen style="display:block;"></iframe>
+  </div>
+  {% endfor %}
+  {% endif %}
+
+</div>
+</div>
+<script>(function(){const v=localStorage.getItem('fitbot-dark');if(v==='1')document.documentElement.classList.add('dark');})();</script>
+</body></html>

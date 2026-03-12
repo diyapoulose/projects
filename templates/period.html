@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FitBot — Period Tracker</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"></head>
+<body>
+<a href="/dashboard" class="back-btn">&#8592;</a>
+<div class="page center-page">
+<div class="card fade-in">
+  <h2 style="margin-bottom:3px;">Period Tracker</h2>
+  <p style="margin-bottom:18px;">Track your cycle and understand your body.</p>
+  {% if notification %}<div class="notif-bar">{{ notification }}</div>{% endif %}
+  <form method="post">
+    <label>Last Period Start Date</label>
+    <input type="date" name="last_period_date" value="{{ last_period_date or '' }}" required>
+    <label>Cycle Length (days)</label>
+    <input type="number" name="cycle_length" value="{{ cycle_length or 28 }}" required>
+    <label>Period Length (days)</label>
+    <input type="number" name="period_length" value="{{ period_length or 5 }}" required style="margin-bottom:20px;">
+    <button type="submit" class="btn btn-full" style="padding:13px;">Save &amp; Calculate</button>
+  </form>
+  {% if phase %}
+  <div class="phase-result">
+    <h4>Current Phase: {{ phase }}</h4>
+    <p>{{ message }}</p>
+  </div>
+  {% endif %}
+</div>
+</div>
+<script>(function(){const v=localStorage.getItem('fitbot-dark');if(v==='1')document.documentElement.classList.add('dark');})();</script>
+</body></html>

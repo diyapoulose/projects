@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FitBot — Daily Habits</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"></head>
+<body>
+<a href="/dashboard" class="back-btn">&#8592;</a>
+<div class="page center-page">
+<div class="card fade-in">
+
+  <div class="score-banner">
+    <h3>Daily Habits</h3>
+    <span class="score-num" id="sc-done">{{ completed_count }}</span><span style="font-size:1rem;opacity:.65;color:#fff;"> / <span id="sc-total">{{ total_count }}</span></span>
+    <span class="score-sub" id="sc-pts">{{ total }} points earned today</span>
+    <div class="score-track"><div class="score-fill" id="sc-bar" style="width:{{ [(completed_count / [total_count,1]|max * 100)|int, 100]|min }}%"></div></div>
+  </div>
+
+  <div id="habits-list">
+  {% for h in habits %}
+  <div class="habit-row {% if h.completed %}done{% endif %}" id="hr-{{ h.id }}" onclick="tog({{ h.id }})">
+    <div class="habit-left">
+      <input type="checkbox" id="cb-{{ h.id }}" {% if h.completed %}checked{% endif %} onclick="tog({{ h.id }});event.stopPropagation();">
+      <span>{{ h.name }}</span>
+    </div>
+    <span class="pts-badge">{{ h.points }} pts</span>
+  </div>
+  {% endfor %}
+  </div>
+
+  <div class="add-habit">
+    <h3 style="margin-bottom:12px;">Add Habit</h3>
+    <form method="post" id="add-form">
+      <label>Name</label>
+      <input name="name" placeholder="e.g. Drink 2L of water" required>
+      <label>Points</label>
+      <input name="points" placeholder="e.g. 10" type="number" min="1" max="100" required style="margin-bottom:16px;">
+      <button type="submit" class="btn btn-full" style="padding:12px;">Add Habit</button>
+    </form>
+  </div>
+
+</div>
+</div>
+<div id="toast" class="toast"></div>
+<script>
+(function(){const v=localStorage.getItem('fitbot-dark');if(v==='1')document.documentElement.classList.add('dark');})();
+
+let completedCount = {{ completed_count }};
+let totalCount = {{ total_count }};
+let totalPts = {{ total }};
+
+// Store points per habit for client-side updates
+const habitPts = { {% for h in habits %}{{ h.id }}: {{ h.points }},{% endfor %} };
+const habitDone = { {% for h in habits %}{{ h.id }}: {{ 1 if h.completed else 0 }},{% endfor %} };
+
+function tog(id) {
+  fetch('/toggle-habit/' + id, { method: 'POST' })
+    .then(r => r.json())
+    .then(d => {
+      const row = document.getElementById('hr-' + id);
+      const cb  = document.getElementById('cb-' + id);
+      const pts = habitPts[id] || 0;
+
+      if (d.completed) {
+        row.classList.add('done'); cb.checked = true;
+        if (!habitDone[id]) {
+          completedCount++; totalPts += pts; habitDone[id] = 1;
+          showToast('+' + d.xp + ' XP earned');
+        }
+      } else {
+        row.classList.remove('done'); cb.checked = false;
+        if (habitDone[id]) {
+          completedCount--; totalPts -= pts; habitDone[id] = 0;
+        }
+      }
+      updateUI();
+    });
+}
+
+function updateUI() {
+  document.getElementById('sc-done').innerText = completedCount;
+  document.getElementById('sc-pts').innerText  = totalPts + ' points earned today';
+  const pct = totalCount > 0 ? Math.min(completedCount / totalCount * 100, 100) : 0;
+  document.getElementById('sc-bar').style.width = pct + '%';
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.innerText = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+</script>
+</body></html>

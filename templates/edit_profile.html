@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FitBot — Edit Profile</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<style>
+  .ep-wrap { max-width: 500px; width: 100%; margin: 0 auto; padding: 72px 16px 60px; }
+
+  .avatar-row {
+    display: flex; align-items: center; gap: 20px;
+    background: var(--surface2); border: 1.5px solid var(--border);
+    border-radius: var(--r-lg); padding: 18px 20px; margin-bottom: 20px;
+  }
+  .avatar-circle {
+    width: 76px; height: 76px; border-radius: 50%;
+    background: var(--teal-pale); border: 3px solid var(--teal-soft);
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 2rem; font-weight: 700; color: var(--teal); overflow: hidden;
+  }
+  .avatar-circle img { width: 100%; height: 100%; object-fit: cover; }
+  .avatar-info h3 { font-size: 0.92rem; font-weight: 700; margin-bottom: 3px; }
+  .avatar-info p  { font-size: 0.75rem; color: var(--muted); margin: 0 0 8px; }
+  .pick-btn {
+    display: inline-block; font-size: 0.75rem; font-weight: 600;
+    color: var(--teal); background: var(--teal-pale);
+    border: 1.5px solid var(--teal-soft); border-radius: var(--r-sm);
+    padding: 5px 14px; cursor: pointer; transition: background 0.15s;
+  }
+  .pick-btn:hover { background: var(--teal-soft); }
+  #pic-input { display: none; }
+
+  .sec {
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: var(--r-lg); padding: 20px 20px 8px;
+    margin-bottom: 14px; box-shadow: var(--sh-xs);
+  }
+  .sec-title {
+    font-size: 0.67rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.09em; color: var(--teal); margin-bottom: 16px;
+    padding-bottom: 10px; border-bottom: 1.5px solid var(--border);
+  }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+
+  select {
+    -webkit-appearance: none; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='%238fa39d' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px;
+  }
+
+  /* Inline field error */
+  .f-err {
+    display: none; font-size: 0.76rem; font-weight: 500; color: var(--red);
+    background: #fff0f0; border: 1px solid #ffd0d0; border-radius: 7px;
+    padding: 7px 11px; margin-top: -8px; margin-bottom: 10px;
+  }
+  input.invalid, select.invalid, textarea.invalid {
+    border-color: var(--red) !important;
+    box-shadow: 0 0 0 3px rgba(217,79,79,0.1) !important;
+  }
+
+  .sticky-save {
+    position: sticky; bottom: 0; background: var(--bg);
+    padding: 14px 0 24px; border-top: 1.5px solid var(--border); margin-top: 8px;
+  }
+
+  .save-toast {
+    position: fixed; bottom: 28px; left: 50%;
+    transform: translateX(-50%) translateY(90px);
+    background: var(--teal); color: #fff; font-size: 0.82rem; font-weight: 600;
+    padding: 12px 26px; border-radius: 50px;
+    box-shadow: 0 6px 24px rgba(30,107,82,0.35); z-index: 9999;
+    transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    pointer-events: none; white-space: nowrap;
+  }
+  .save-toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<script>(function(){const v=localStorage.getItem('fitbot-dark');if(v==='1')document.documentElement.classList.add('dark');})();</script>
+
+<a href="/settings" class="back-btn">&#8592;</a>
+
+<div class="ep-wrap">
+  <h2 style="margin-bottom:4px;">Edit Profile</h2>
+  <p style="margin-bottom:20px;">Keep your info accurate for better recommendations.</p>
+
+  <form method="POST" action="/edit-profile" enctype="multipart/form-data" id="ep-form">
+
+    <!-- AVATAR -->
+    <div class="avatar-row">
+      <div class="avatar-circle" id="avatar-preview">
+        {% if profile and profile['profile_pic'] %}
+          <img src="{{ url_for('static', filename=profile['profile_pic']) }}" alt="pic">
+        {% else %}
+          <span>{{ (name or (profile['name'] if profile and profile['name'] else 'U'))[0].upper() }}</span>
+        {% endif %}
+      </div>
+      <div class="avatar-info">
+        <h3>Profile Picture</h3>
+        <p>JPG, PNG or WebP — max 5 MB</p>
+        <label class="pick-btn" for="pic-input">Choose Photo</label>
+        <input type="file" name="profile_pic" id="pic-input" accept="image/*">
+      </div>
+    </div>
+
+    <!-- IDENTITY -->
+    <div class="sec">
+      <div class="sec-title">Identity</div>
+      <label>Display Name</label>
+      <input type="text" name="name" id="inp-name" placeholder="Your name"
+             value="{{ name or (profile['name'] if profile and profile['name'] else '') }}">
+      <div class="f-err" id="err-name"></div>
+      <div class="grid2">
+        <div>
+          <label>Date of Birth</label>
+          <input type="date" name="dob"
+                 value="{{ profile['dob'] if profile and profile['dob'] else '' }}">
+        </div>
+        <div>
+          <label>Phone</label>
+          <input type="tel" name="phone" id="inp-phone" placeholder="+91 9876543210"
+                 value="{{ profile['phone'] if profile and profile['phone'] else '' }}">
+          <div class="f-err" id="err-phone"></div>
+        </div>
+      </div>
+      <label>About You</label>
+      <textarea name="about" placeholder="A short bio..." style="resize:vertical;min-height:70px;">{{ profile['about'] if profile and profile['about'] else '' }}</textarea>
+    </div>
+
+    <!-- BODY METRICS -->
+    <div class="sec">
+      <div class="sec-title">Body Metrics</div>
+      <div class="grid2">
+        <div>
+          <label>Age</label>
+          <input type="number" name="age" id="inp-age" placeholder="25"
+                 value="{{ profile['age'] if profile and profile['age'] else '' }}">
+          <div class="f-err" id="err-age"></div>
+        </div>
+        <div>
+          <label>Gender</label>
+          <select name="gender">
+            <option value="">Select</option>
+            {% for g in ['Male','Female','Other'] %}
+            <option {% if profile and profile['gender'] == g %}selected{% endif %}>{{ g }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label>Height (cm)</label>
+          <input type="number" name="height" id="inp-height" placeholder="170" step="0.1"
+                 value="{{ profile['height_cm'] if profile and profile['height_cm'] else '' }}">
+          <div class="f-err" id="err-height"></div>
+        </div>
+        <div>
+          <label>Weight (kg)</label>
+          <input type="number" name="weight" id="inp-weight" placeholder="65" step="0.1"
+                 value="{{ profile['weight_kg'] if profile and profile['weight_kg'] else '' }}">
+          <div class="f-err" id="err-weight"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FITNESS -->
+    <div class="sec">
+      <div class="sec-title">Fitness Details</div>
+      <label>Activity Level</label>
+      <select name="activity">
+        <option value="">Select level</option>
+        {% for a in ['Sedentary','Light','Moderate','Active','Very Active'] %}
+        <option {% if profile and profile['activity_level'] == a %}selected{% endif %}>{{ a }}</option>
+        {% endfor %}
+      </select>
+      <label>Main Goal</label>
+      <select name="goal">
+        <option value="">Select goal</option>
+        {% for g in ['Fat loss','Strength','Endurance','General fitness','Flexibility'] %}
+        <option {% if profile and profile['goal'] == g %}selected{% endif %}>{{ g }}</option>
+        {% endfor %}
+      </select>
+      <label>Health Notes</label>
+      <textarea name="health_notes" placeholder="Any injuries, conditions or notes..."
+                style="resize:vertical;min-height:68px;">{{ profile['health_notes'] if profile and profile['health_notes'] else '' }}</textarea>
+    </div>
+
+    <div class="sticky-save">
+      <button type="submit" class="btn btn-full" style="padding:14px;font-size:0.95rem;">Save All Changes</button>
+    </div>
+
+  </form>
+</div>
+
+<div class="save-toast" id="save-toast">Profile saved</div>
+
+<script>
+// Live avatar preview
+document.getElementById('pic-input').addEventListener('change', function() {
+  const file = this.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('avatar-preview').innerHTML =
+      '<img src="' + e.target.result + '" style="width:100%;height:100%;object-fit:cover;">';
+  };
+  reader.readAsDataURL(file);
+});
+
+function showErr(id, inputId, msg) {
+  const err = document.getElementById(id);
+  err.textContent = msg;
+  err.style.display = 'block';
+  if (inputId) document.getElementById(inputId).classList.add('invalid');
+}
+function clearErr(id, inputId) {
+  document.getElementById(id).style.display = 'none';
+  if (inputId) document.getElementById(inputId).classList.remove('invalid');
+}
+
+document.getElementById('ep-form').addEventListener('submit', function(e) {
+  let ok = true;
+
+  // Name: letters and spaces only (only validate if filled)
+  const name = document.getElementById('inp-name').value.trim();
+  if (name && !/^[A-Za-z\s]+$/.test(name)) {
+    showErr('err-name', 'inp-name', 'Name must contain only letters and spaces — no numbers or symbols.');
+    ok = false;
+  } else {
+    clearErr('err-name', 'inp-name');
+  }
+
+  // Age: 8–100 (only validate if filled)
+  const ageRaw = document.getElementById('inp-age').value.trim();
+  if (ageRaw !== '') {
+    const age = parseFloat(ageRaw);
+    if (isNaN(age) || age <= 0) {
+      showErr('err-age', 'inp-age', 'Age cannot be zero or negative.'); ok = false;
+    } else if (age < 8) {
+      showErr('err-age', 'inp-age', 'Age must be at least 8.'); ok = false;
+    } else if (age > 100) {
+      showErr('err-age', 'inp-age', 'Age must not exceed 100.'); ok = false;
+    } else { clearErr('err-age', 'inp-age'); }
+  } else { clearErr('err-age', 'inp-age'); }
+
+  // Height: 50–300 (only validate if filled)
+  const htRaw = document.getElementById('inp-height').value.trim();
+  if (htRaw !== '') {
+    const ht = parseFloat(htRaw);
+    if (isNaN(ht) || ht <= 0) {
+      showErr('err-height', 'inp-height', 'Height cannot be zero or negative.'); ok = false;
+    } else if (ht < 50) {
+      showErr('err-height', 'inp-height', 'Height must be at least 50 cm.'); ok = false;
+    } else if (ht > 300) {
+      showErr('err-height', 'inp-height', 'Height must not exceed 300 cm.'); ok = false;
+    } else { clearErr('err-height', 'inp-height'); }
+  } else { clearErr('err-height', 'inp-height'); }
+
+  // Weight: 20–250 (only validate if filled)
+  const wtRaw = document.getElementById('inp-weight').value.trim();
+  if (wtRaw !== '') {
+    const wt = parseFloat(wtRaw);
+    if (isNaN(wt) || wt <= 0) {
+      showErr('err-weight', 'inp-weight', 'Weight cannot be zero or negative.'); ok = false;
+    } else if (wt < 20) {
+      showErr('err-weight', 'inp-weight', 'Weight must be at least 20 kg.'); ok = false;
+    } else if (wt > 250) {
+      showErr('err-weight', 'inp-weight', 'Weight must not exceed 250 kg.'); ok = false;
+    } else { clearErr('err-weight', 'inp-weight'); }
+  } else { clearErr('err-weight', 'inp-weight'); }
+
+  // Phone: digits/+/spaces only, max 12 digits (only validate if filled)
+  const phoneRaw = document.getElementById('inp-phone').value.trim();
+  if (phoneRaw !== '') {
+    const digitsOnly = phoneRaw.replace(/[\s\+\-\(\)]/g, '');
+    if (/[a-zA-Z]/.test(phoneRaw)) {
+      showErr('err-phone', 'inp-phone', 'Phone number cannot contain letters.'); ok = false;
+    } else if (/[^0-9\s\+\-\(\)]/.test(phoneRaw)) {
+      showErr('err-phone', 'inp-phone', 'Phone number can only contain digits, +, spaces, or dashes.'); ok = false;
+    } else if (digitsOnly.length > 12) {
+      showErr('err-phone', 'inp-phone', 'Phone number must not exceed 12 digits.'); ok = false;
+    } else { clearErr('err-phone', 'inp-phone'); }
+  } else { clearErr('err-phone', 'inp-phone'); }
+
+  if (!ok) {
+    e.preventDefault();
+    // Scroll to first error
+    const firstErr = document.querySelector('.f-err[style*="block"]');
+    if (firstErr) firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+});
+
+// Show success toast if just saved
+{% if saved %}
+(function(){
+  const t = document.getElementById('save-toast');
+  setTimeout(() => t.classList.add('show'), 150);
+  setTimeout(() => t.classList.remove('show'), 3200);
+})();
+{% endif %}
+</script>
+</body>
+</html>

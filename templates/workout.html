@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FitBot — Workout</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"></head>
+<body>
+<a href="/dashboard" class="back-btn">&#8592;</a>
+
+<!-- Form-check camera modal -->
+<div class="form-modal-overlay" id="formModal">
+  <div class="form-modal">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <h3 style="margin:0;">Form Check</h3>
+      <button onclick="closeCamera()" class="btn btn-ghost" style="padding:6px 12px;font-size:0.78rem;border-radius:6px;">Stop Camera</button>
+    </div>
+    <video id="camFeed" autoplay playsinline style="border-radius:10px;width:100%;margin-bottom:10px;"></video>
+    <div class="form-feedback" id="formFeedback">Analysing your form...</div>
+    <div class="form-modal-btns">
+      <button onclick="closeCamera()" class="btn btn-red" style="flex:1;padding:10px;font-size:0.82rem;">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="page" style="padding-top:68px; align-items:flex-start;">
+<div class="card fade-in">
+  <h2 style="margin-bottom:3px;">{{ day_focus or "Today's Workout" }}</h2>
+  <p style="margin-bottom:14px;">{% if rest_day %}Active recovery — light movement only.{% else %}Move with control. Quality over speed.{% endif %}</p>
+  {% if day_focus and not rest_day %}
+  <div style="display:inline-flex;align-items:center;gap:8px;background:var(--amber-bg);border:2px solid var(--amber-dk);border-radius:4px;padding:4px 12px;margin-bottom:12px;box-shadow:2px 2px 0 var(--amber-dk);">
+    <span style="font-family:var(--font-display);font-size:0.7rem;font-weight:800;color:var(--amber-dk);text-transform:uppercase;letter-spacing:0.08em;">{{ ["MON","TUE","WED","THU","FRI","SAT","SUN"][day_num-1] }} · {{ day_focus }}</span>
+  </div>
+  {% endif %}
+
+  <div class="prog-strip"><div class="prog-fill" id="pbar" style="width:0%"></div></div>
+  <div style="display:flex;justify-content:space-between;font-size:0.76rem;font-weight:600;color:var(--muted);margin-bottom:16px;">
+    <span>Exercise <span id="ci" style="color:var(--teal);">1</span> / {{ (warmup|length) + (main|length) + (cooldown|length) }}</span>
+    <span id="pp">0%</span>
+  </div>
+
+  {% set all = warmup + main + cooldown %}
+  {% for ex in all %}
+  <div class="ex-card" id="ec-{{ loop.index0 }}">
+    <span class="ex-phase">{% if loop.index0 < warmup|length %}Warm-up{% elif loop.index0 < (warmup|length + main|length) %}Main{% else %}Cool-down{% endif %}</span>
+    <h3>{{ ex.name }}</h3>
+    <div class="ex-meta">
+      {% if ex.sets %}<span>{{ ex.sets }} &times; {{ ex.reps }} reps</span>{% else %}<span>{{ ex.duration }}s</span>{% endif %}
+      <span>Rest {{ ex.rest_seconds or 30 }}s</span>
+      <span>Timer: <b id="et-{{ loop.index0 }}" style="color:var(--teal);">{{ ex.duration or 30 }}</b>s</span>
+    </div>
+    <div style="border-radius:10px;overflow:hidden;margin-bottom:10px;">
+      <iframe width="100%" height="180" src="https://www.youtube.com/embed/{{ ex.youtube_id }}" frameborder="0" allowfullscreen></iframe>
+    </div>
+    <div class="ex-btns">
+      <button onclick="openCamera('{{ ex.type }}', {{ ex.id }})" class="btn btn-ghost" style="flex:1;">Check Form</button>
+      <button onclick="startEx({{ ex.duration or 30 }}, {{ ex.rest_seconds or 30 }}, {{ loop.index0 }})" class="btn" style="flex:1;">Start</button>
+    </div>
+    <div class="rest-box" id="rb-{{ loop.index0 }}">Rest &mdash; <b id="rt-{{ loop.index0 }}"></b>s remaining</div>
+  </div>
+  {% endfor %}
+</div>
+</div>
+
+<script>
+(function(){const v=localStorage.getItem('fitbot-dark');if(v==='1')document.documentElement.classList.add('dark');})();
+
+let cur = 0;
+const cards = document.querySelectorAll('.ex-card');
+const tot = {{ (warmup|length) + (main|length) + (cooldown|length) }};
+let camStream = null;
+let feedbackInterval = null;
+let currentExType = null;
+
+// Animate cards in one by one
+function revealCards() {
+  cards.forEach((c, i) => {
+    setTimeout(() => c.classList.add('visible'), 80 + i * 90);
+  });
+}
+revealCards();
+
+function upd() {
+  const p = Math.round((cur / tot) * 100);
+  document.getElementById('ci').innerText = cur + 1;
+  document.getElementById('pbar').style.width = p + '%';
+  document.getElementById('pp').innerText = p + '%';
+}
+
+function startEx(dur, rest, idx) {
+  let t = dur;
+  const e = document.getElementById('et-' + idx);
+  e.innerText = t;
+  const iv = setInterval(() => {
+    t--; e.innerText = t;
+    if (t <= 0) { clearInterval(iv); startRest(rest, idx); }
+  }, 1000);
+}
+
+function startRest(sec, idx) {
+  const box = document.getElementById('rb-' + idx);
+  const el  = document.getElementById('rt-' + idx);
+  box.style.display = 'block'; let t = sec; el.innerText = t;
+  const iv = setInterval(() => {
+    t--; el.innerText = t;
+    if (t <= 0) { clearInterval(iv); box.style.display = 'none'; nxt(idx); }
+  }, 1000);
+}
+
+function nxt(idx) {
+  document.getElementById('ec-' + idx).classList.add('done');
+  if (idx + 1 < cards.length) {
+    cur = idx + 1; upd();
+    cards[cur].scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } else {
+    fetch('/complete-workout', { method: 'POST' })
+      .then(r => r.json())
+      .then(() => { document.getElementById('pbar').style.width = '100%'; alert('Workout complete! +40 XP'); });
+  }
+}
+
+// ---- FORM CHECK CAMERA ----
+function openCamera(exType, exId) {
+  currentExType = exType;
+  const modal = document.getElementById('formModal');
+  modal.classList.add('open');
+  const video = document.getElementById('camFeed');
+  document.getElementById('formFeedback').innerText = 'Starting camera...';
+
+  navigator.mediaDevices.getUserMedia({ video: true })
+    .then(stream => {
+      camStream = stream;
+      video.srcObject = stream;
+      document.getElementById('formFeedback').innerText = 'Camera active. Hold your position.';
+
+      // Poll form-check every 2.5s
+      feedbackInterval = setInterval(() => {
+        fetch('/form-check/' + exType)
+          .then(r => r.json())
+          .then(d => {
+            const fb = document.getElementById('formFeedback');
+            fb.innerText = d.message;
+            // Voice feedback
+            if (window.speechSynthesis && d.message) {
+              const utt = new SpeechSynthesisUtterance(d.message.replace(/[^\w\s.,!?-]/g, ''));
+              utt.rate = 1; utt.pitch = 1;
+              window.speechSynthesis.cancel();
+              window.speechSynthesis.speak(utt);
+            }
+          })
+          .catch(() => {});
+      }, 2500);
+    })
+    .catch(() => {
+      document.getElementById('formFeedback').innerText = 'Camera access denied. Allow camera permission to use this feature.';
+    });
+}
+
+function closeCamera() {
+  if (feedbackInterval) { clearInterval(feedbackInterval); feedbackInterval = null; }
+  if (camStream) { camStream.getTracks().forEach(t => t.stop()); camStream = null; }
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
+  document.getElementById('formModal').classList.remove('open');
+  document.getElementById('camFeed').srcObject = null;
+}
+</script>
+</body></html>

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FitBot — Run</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"></head>
+<body>
+<a href="/dashboard" class="back-btn" style="z-index:1300;">&#8592;</a>
+<div class="run-wrap">
+  <div id="map">
+    <p style="font-family:var(--font);font-size:0.82rem;font-weight:500;color:var(--muted);text-align:center;padding:20px;">Map requires a Google Maps API key</p>
+  </div>
+  <div class="run-sheet">
+    <div class="sheet-handle"></div>
+    <h2 style="margin-bottom:3px;">Run Tracker</h2>
+    <p style="margin-bottom:16px;font-size:0.82rem;">GPS-powered tracking</p>
+    <div class="run-stats">
+      <div class="run-stat"><span class="rv" id="distance">0.00</span><span class="rl">km</span></div>
+      <div class="run-stat"><span class="rv" id="steps">0</span><span class="rl">steps</span></div>
+      <div class="run-stat"><span class="rv" id="calories">0</span><span class="rl">cal</span></div>
+    </div>
+    <div class="run-btns">
+      <button onclick="startRun()" class="btn" style="border-radius:var(--r-sm);">Start Run</button>
+      <button onclick="stopRun()" class="btn btn-red" style="border-radius:var(--r-sm);">Stop &amp; Save</button>
+    </div>
+  </div>
+</div>
+<script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY"></script>
+<script>
+(function(){const v=localStorage.getItem('fitbot-dark');if(v==='1')document.documentElement.classList.add('dark');})();
+let map, path=[], poly, wid, dist=0;
+function initMap(){
+  map=new google.maps.Map(document.getElementById('map'),{
+    zoom:15, center:{lat:0,lng:0}, disableDefaultUI:true,
+    styles:[{featureType:'poi',stylers:[{visibility:'off'}]}]
+  });
+  poly=new google.maps.Polyline({map,path,strokeColor:'#1e6b52',strokeWeight:5,strokeOpacity:0.9});
+}
+function startRun(){
+  wid=navigator.geolocation.watchPosition(p=>{
+    const pt={lat:p.coords.latitude,lng:p.coords.longitude};
+    path.push(pt); poly.setPath(path); map.setCenter(pt);
+    if(path.length>1) dist+=calc(path[path.length-2],pt);
+    upd();
+  });
+}
+function stopRun(){
+  navigator.geolocation.clearWatch(wid);
+  fetch('/save-walk',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({steps:Math.floor(dist*1312),calories:dist*60,distance:dist})
+  }).then(()=>alert('Run saved!'));
+}
+function upd(){
+  document.getElementById('distance').innerText=dist.toFixed(2);
+  document.getElementById('steps').innerText=Math.floor(dist*1312);
+  document.getElementById('calories').innerText=Math.floor(dist*60);
+}
+function calc(a,b){
+  const R=6371,dLat=(b.lat-a.lat)*Math.PI/180,dLng=(b.lng-a.lng)*Math.PI/180;
+  const x=Math.sin(dLat/2)**2+Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
+}
+try{initMap();}catch(e){}
+</script>
+</body></html>

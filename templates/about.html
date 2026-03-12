@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FitBot — Setup</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<style>
+.val-err {
+  background: #fff0f0; border: 1px solid #ffd0d0; border-radius: 8px;
+  padding: 9px 13px; color: var(--red); font-size: 0.8rem; font-weight: 500;
+  margin-bottom: 10px; display: none;
+}
+</style>
+</head>
+<body>
+<a href="/" class="back-btn">&#8592;</a>
+<div class="page center-page">
+  <div class="card fade-in">
+    <div id="dots" class="ob-dots"></div>
+    <form method="post" id="ob">
+
+      <!-- Step 0: Name -->
+      <div class="ob-step active">
+        <h2 style="margin-bottom:4px;">Let's set you up</h2>
+        <p style="margin-bottom:18px;">What should we call you?</p>
+        <div class="val-err" id="err-name">Name must contain only letters and spaces — no numbers or special characters.</div>
+        <label>Display Name</label>
+        <input type="text" name="name" id="inp-name" placeholder="Your name" style="margin-bottom:20px;">
+        <button type="button" class="btn btn-full" style="padding:13px;" onclick="validateName()">Continue</button>
+      </div>
+
+      <!-- Step 1: Gender -->
+      <div class="ob-step">
+        <h2 style="margin-bottom:4px;">Gender</h2>
+        <p style="margin-bottom:16px;">Select one to continue</p>
+        <button type="button" class="ob-opt" onclick="sel('gender','Male')">Male</button>
+        <button type="button" class="ob-opt" onclick="sel('gender','Female')">Female</button>
+        <button type="button" class="ob-opt" onclick="sel('gender','Other')">Prefer not to say</button>
+        <input type="hidden" name="gender">
+      </div>
+
+      <!-- Step 2: Age -->
+      <div class="ob-step">
+        <h2 style="margin-bottom:4px;">Age</h2>
+        <p style="margin-bottom:16px;">How old are you?</p>
+        <div class="val-err" id="err-age">Age must be between 8 and 100.</div>
+        <label>Age</label>
+        <input type="number" name="age" id="inp-age" placeholder="e.g. 25" style="margin-bottom:20px;">
+        <button type="button" class="btn btn-full" style="padding:13px;" onclick="validateAge()">Continue</button>
+      </div>
+
+      <!-- Step 3: Height -->
+      <div class="ob-step">
+        <h2 style="margin-bottom:4px;">Height</h2>
+        <p style="margin-bottom:16px;">In centimetres</p>
+        <div class="val-err" id="err-height">Height must be between 50 cm and 300 cm.</div>
+        <label>Height (cm)</label>
+        <input type="number" name="height" id="inp-height" placeholder="e.g. 170" style="margin-bottom:20px;">
+        <button type="button" class="btn btn-full" style="padding:13px;" onclick="validateHeight()">Continue</button>
+      </div>
+
+      <!-- Step 4: Weight -->
+      <div class="ob-step">
+        <h2 style="margin-bottom:4px;">Weight</h2>
+        <p style="margin-bottom:16px;">In kilograms</p>
+        <div class="val-err" id="err-weight">Weight must be between 20 kg and 250 kg.</div>
+        <label>Weight (kg)</label>
+        <input type="number" name="weight" id="inp-weight" placeholder="e.g. 65" style="margin-bottom:20px;">
+        <button type="button" class="btn btn-full" style="padding:13px;" onclick="validateWeight()">Continue</button>
+      </div>
+
+      <!-- Step 5: Activity -->
+      <div class="ob-step">
+        <h2 style="margin-bottom:4px;">Activity Level</h2>
+        <p style="margin-bottom:16px;">How active are you day-to-day?</p>
+        <button type="button" class="ob-opt" onclick="sel('activity','Low')">Low — mostly sitting</button>
+        <button type="button" class="ob-opt" onclick="sel('activity','Moderate')">Moderate — some movement</button>
+        <button type="button" class="ob-opt" onclick="sel('activity','High')">High — very active</button>
+        <input type="hidden" name="activity">
+      </div>
+
+      <!-- Step 6: Workout Space -->
+      <div class="ob-step">
+        <h2 style="margin-bottom:4px;">Workout Space</h2>
+        <p style="margin-bottom:16px;">Where do you prefer to train?</p>
+        <button type="button" class="ob-opt" onclick="sel('workout_place','Home')">At home</button>
+        <button type="button" class="ob-opt" onclick="sel('workout_place','Gym')">Gym</button>
+        <button type="button" class="ob-opt" onclick="sel('workout_place','Anywhere comfortable')">Anywhere</button>
+        <input type="hidden" name="workout_place">
+      </div>
+
+      <!-- Step 7: Focus -->
+      <div class="ob-step">
+        <h2 style="margin-bottom:4px;">Your Focus</h2>
+        <p style="margin-bottom:16px;">What matters most right now?</p>
+        <button type="button" class="ob-opt" onclick="sel('intent','Feel active')">Feel active</button>
+        <button type="button" class="ob-opt" onclick="sel('intent','Build strength')">Build strength</button>
+        <button type="button" class="ob-opt" onclick="sel('intent','Stay consistent')">Stay consistent</button>
+        <input type="hidden" name="intent">
+      </div>
+
+      <!-- Step 8: Time Available -->
+      <div class="ob-step">
+        <h2 style="margin-bottom:4px;">Time Available</h2>
+        <p style="margin-bottom:16px;">How long can you commit most days?</p>
+        <button type="button" class="ob-opt" onclick="sel('time_available','20 minutes')">20 minutes</button>
+        <button type="button" class="ob-opt" onclick="sel('time_available','30 minutes')">30 minutes</button>
+        <button type="button" class="ob-opt" onclick="sel('time_available','45 minutes')">45 minutes</button>
+        <button type="button" class="ob-opt" onclick="sel('time_available','1 hour')">1 hour</button>
+        <input type="hidden" name="time_available">
+      </div>
+
+      <!-- Step 9: Energy -->
+      <div class="ob-step">
+        <h2 style="margin-bottom:4px;">Current Energy</h2>
+        <p style="margin-bottom:16px;">How has your energy been lately?</p>
+        <button type="button" class="ob-opt" onclick="sel('energy_level','Low')">Low</button>
+        <button type="button" class="ob-opt" onclick="sel('energy_level','Normal')">Normal</button>
+        <button type="button" class="ob-opt" onclick="sel('energy_level','High')">High</button>
+        <input type="hidden" name="energy_level">
+      </div>
+
+      <!-- Step 10: Done -->
+      <div class="ob-step" style="text-align:center; padding:12px 0;">
+        <div style="width:52px;height:52px;background:var(--teal-pale);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        </div>
+        <h2 style="margin-bottom:6px;">All set</h2>
+        <p style="margin-bottom:24px;">Your personalised plan is ready.</p>
+        <button type="submit" class="btn btn-full" style="padding:14px; font-size:0.92rem;">Go to Dashboard</button>
+      </div>
+
+    </form>
+  </div>
+</div>
+<script>
+let cur = 0;
+const steps = document.querySelectorAll('.ob-step');
+const dotsEl = document.getElementById('dots');
+steps.forEach((_, i) => {
+  const d = document.createElement('div');
+  d.className = 'ob-dot' + (i === 0 ? ' cur' : '');
+  dotsEl.appendChild(d);
+});
+function upd() {
+  document.querySelectorAll('.ob-dot').forEach((d, i) => {
+    d.className = 'ob-dot' + (i === cur ? ' cur' : i < cur ? ' done' : '');
+  });
+}
+function nxt() {
+  steps[cur].classList.remove('active'); cur++;
+  steps[cur].classList.add('active'); upd();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function sel(f, v) {
+  document.querySelector(`input[name="${f}"]`).value = v; nxt();
+}
+function showErr(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+function hideErr(id) {
+  document.getElementById(id).style.display = 'none';
+}
+
+// Name: letters and spaces only
+function validateName() {
+  const val = document.getElementById('inp-name').value.trim();
+  if (!val) { showErr('err-name', 'Please enter your name.'); return; }
+  if (!/^[A-Za-z\s]+$/.test(val)) {
+    showErr('err-name', 'Name must contain only letters and spaces — no numbers or special characters.');
+    return;
+  }
+  hideErr('err-name');
+  nxt();
+}
+
+// Age: 8–100, no negatives
+function validateAge() {
+  const val = parseFloat(document.getElementById('inp-age').value);
+  if (isNaN(val) || !document.getElementById('inp-age').value.trim()) {
+    showErr('err-age', 'Please enter your age.'); return;
+  }
+  if (val < 8)   { showErr('err-age', 'Age must be at least 8.'); return; }
+  if (val > 100) { showErr('err-age', 'Age must not exceed 100.'); return; }
+  if (val <= 0)  { showErr('err-age', 'Age cannot be zero or negative.'); return; }
+  hideErr('err-age');
+  nxt();
+}
+
+// Height: 50–300
+function validateHeight() {
+  const val = parseFloat(document.getElementById('inp-height').value);
+  if (isNaN(val) || !document.getElementById('inp-height').value.trim()) {
+    showErr('err-height', 'Please enter your height.'); return;
+  }
+  if (val <= 0)  { showErr('err-height', 'Height cannot be zero or negative.'); return; }
+  if (val < 50)  { showErr('err-height', 'Height must be at least 50 cm.'); return; }
+  if (val > 300) { showErr('err-height', 'Height must not exceed 300 cm.'); return; }
+  hideErr('err-height');
+  nxt();
+}
+
+// Weight: 20–250
+function validateWeight() {
+  const val = parseFloat(document.getElementById('inp-weight').value);
+  if (isNaN(val) || !document.getElementById('inp-weight').value.trim()) {
+    showErr('err-weight', 'Please enter your weight.'); return;
+  }
+  if (val <= 0)  { showErr('err-weight', 'Weight cannot be zero or negative.'); return; }
+  if (val < 20)  { showErr('err-weight', 'Weight must be at least 20 kg.'); return; }
+  if (val > 250) { showErr('err-weight', 'Weight must not exceed 250 kg.'); return; }
+  hideErr('err-weight');
+  nxt();
+}
+</script>
+</body></html>

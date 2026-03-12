@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FitBot — Settings</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"></head>
+<body>
+<script>(function(){const v=localStorage.getItem('fitbot-dark');if(v==='1')document.documentElement.classList.add('dark');})();</script>
+<a href="/dashboard" class="back-btn">&#8592;</a>
+<div class="set-wrap">
+  <div class="set-inner fade-in">
+    <h2 style="margin-bottom:3px;">Settings</h2>
+    <p style="margin-bottom:22px;">Manage your account and preferences</p>
+
+    <div class="sec-lbl">Account</div>
+    <div class="set-group">
+      <a href="/edit-profile" class="set-row">
+        <div class="set-row-left">
+          <div class="set-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>
+          <div><div class="set-info">Edit Profile</div><div class="set-sub">Update your personal details</div></div>
+        </div>
+        <span class="set-arr">›</span>
+      </a>
+    </div>
+
+    <div class="sec-lbl">Appearance</div>
+    <div class="set-group">
+      <button onclick="toggleDark()" class="set-row">
+        <div class="set-row-left">
+          <div class="set-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg></div>
+          <div><div class="set-info" id="theme-label">Dark Mode</div><div class="set-sub">Switch display theme</div></div>
+        </div>
+        <div id="theme-toggle" style="width:40px;height:22px;background:var(--cream3);border-radius:3px;position:relative;transition:background 0.15s;border:2px solid var(--ink3);">
+          <div id="theme-knob" style="position:absolute;top:2px;left:2px;width:14px;height:14px;background:var(--muted);border-radius:2px;transition:left 0.15s,background 0.15s;"></div>
+        </div>
+      </button>
+    </div>
+
+    <div class="sec-lbl">Info</div>
+    <div class="set-group">
+      <a href="/about_app" class="set-row">
+        <div class="set-row-left">
+          <div class="set-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+          <div><div class="set-info">About FitBot</div><div class="set-sub">App info and features</div></div>
+        </div>
+        <span class="set-arr">›</span>
+      </a>
+    </div>
+
+    <div class="set-group">
+      <a href="/logout" class="set-row" style="color:var(--coral);">
+        <div class="set-row-left">
+          <div class="set-icon" style="background:var(--coral-bg);border-color:var(--coral);">
+            <svg viewBox="0 0 24 24" style="stroke:var(--coral);"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+          </div>
+          <div class="set-info" style="color:var(--coral);">Sign Out</div>
+        </div>
+        <span class="set-arr" style="color:var(--coral);">›</span>
+      </a>
+    </div>
+    <p style="text-align:center;font-size:0.72rem;color:var(--muted);margin-top:22px;">FitBot v1.0 · No Ads · No Paywalls</p>
+  </div>
+</div>
+<script>
+function isDark(){ return document.documentElement.classList.contains('dark'); }
+function toggleDark(){
+  const d = document.documentElement.classList.toggle('dark');
+  localStorage.setItem('fitbot-dark', d ? '1' : '0');
+  updateToggle(d);
+}
+function updateToggle(dark){
+  const tog=document.getElementById('theme-toggle');
+  const knob=document.getElementById('theme-knob');
+  const lbl=document.getElementById('theme-label');
+  if(dark){
+    tog.style.background='var(--amber)'; tog.style.borderColor='var(--amber-dk)';
+    knob.style.left='20px'; knob.style.background='var(--ink)';
+    lbl.innerText='Light Mode';
+  } else {
+    tog.style.background='var(--cream3)'; tog.style.borderColor='var(--ink3)';
+    knob.style.left='2px'; knob.style.background='var(--muted)';
+    lbl.innerText='Dark Mode';
+  }
+}
+updateToggle(isDark());
+</script>
+</body></html>
