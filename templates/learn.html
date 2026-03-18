@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FitBot — Learn</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<style>
+.learn-page { padding: 72px 16px 40px; }
+
+/* Tab bar */
+.tab-bar {
+  display: flex; gap: 6px;
+  background: var(--cream2); border: 2px solid var(--ink); border-radius: 8px;
+  padding: 4px; margin-bottom: 18px;
+  box-shadow: 3px 3px 0 var(--ink);
+}
+.tab-btn {
+  flex: 1; padding: 9px 4px; border: none; border-radius: 5px;
+  font-family: var(--font-display); font-size: 0.72rem; font-weight: 900;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  background: transparent; color: var(--muted); cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.tab-btn.active {
+  background: var(--ink); color: var(--amber);
+}
+
+/* Tab panels */
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* Section header */
+.sec-head {
+  font-family: var(--font-display); font-size: 1.4rem; font-weight: 900;
+  text-transform: uppercase; letter-spacing: 0.03em; color: var(--ink);
+  line-height: 1; margin-bottom: 4px;
+}
+.sec-sub { font-size: 0.78rem; color: var(--muted); margin-bottom: 16px; }
+
+/* Info cards */
+.info-card {
+  background: var(--cream2); border: 2px solid var(--ink); border-radius: 10px;
+  box-shadow: 3px 3px 0 var(--ink); margin-bottom: 12px; overflow: hidden;
+}
+.info-card-head {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px; border-bottom: 2px solid var(--ink);
+  cursor: pointer; user-select: none;
+}
+.info-card-icon { font-size: 1.2rem; flex-shrink: 0; }
+.info-card-title {
+  font-family: var(--font-display); font-size: 0.88rem; font-weight: 900;
+  text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink); flex: 1;
+}
+.info-card-arrow {
+  font-size: 0.8rem; color: var(--muted); transition: transform 0.2s;
+  font-weight: 700;
+}
+.info-card.open .info-card-arrow { transform: rotate(90deg); }
+.info-card-body {
+  display: none; padding: 14px 14px;
+  font-size: 0.82rem; color: var(--ink3); line-height: 1.65;
+}
+.info-card.open .info-card-body { display: block; }
+
+/* Key-value fact rows */
+.fact-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 7px 0; border-bottom: 1px solid var(--cream3);
+  font-size: 0.8rem;
+}
+.fact-row:last-child { border-bottom: none; }
+.fact-label { color: var(--muted); font-weight: 500; }
+.fact-val {
+  font-family: var(--font-display); font-size: 0.78rem; font-weight: 900;
+  text-transform: uppercase; letter-spacing: 0.04em;
+  background: var(--cream3); border: 1.5px solid var(--ink3);
+  padding: 2px 8px; border-radius: 3px; color: var(--ink);
+}
+.fact-val.amber { background: var(--amber-bg); border-color: var(--amber-dk); color: var(--amber-dk); }
+
+/* Tip block */
+.tip-block {
+  background: var(--amber-bg); border: 1.5px solid var(--amber-dk);
+  border-radius: 6px; padding: 10px 12px; margin-top: 10px;
+  font-size: 0.78rem; color: var(--amber-dk); line-height: 1.55;
+}
+.tip-block strong { font-family: var(--font-display); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; display: block; margin-bottom: 3px; }
+
+/* Muscle diagram chips */
+.muscle-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+.muscle-chip {
+  font-family: var(--font-display); font-size: 0.6rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.07em;
+  background: var(--cream3); border: 1.5px solid var(--ink3); border-radius: 3px;
+  padding: 2px 7px; color: var(--ink3);
+}
+
+/* Macro bar */
+.macro-bar-wrap { margin: 10px 0; }
+.macro-bar-label { display: flex; justify-content: space-between; font-size: 0.72rem; margin-bottom: 3px; }
+.macro-bar-track { height: 8px; background: var(--cream3); border-radius: 4px; border: 1px solid var(--ink3); overflow: hidden; }
+.macro-bar-fill { height: 100%; border-radius: 4px; }
+</style>
+</head>
+<body>
+<script>(function(){const v=localStorage.getItem('fitbot-dark');if(v==='1')document.documentElement.classList.add('dark');})();</script>
+<a href="/dashboard" class="back-btn">&#8592;</a>
+
+<div class="learn-page">
+
+  <!-- Tab bar -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('workout', this)">💪 Workout</button>
+    <button class="tab-btn" onclick="switchTab('diet', this)">🥗 Diet</button>
+    <button class="tab-btn" onclick="switchTab('recovery', this)">😴 Recovery</button>
+  </div>
+
+  <!-- ── WORKOUT TAB ─────────────────────────────────────────────────────── -->
+  <div class="tab-panel active" id="tab-workout">
+    <div class="sec-head">Workout Guide</div>
+    <div class="sec-sub">Everything you need to train smart and get results.</div>
+
+    <div class="info-card open">
+      <div class="info-card-head" onclick="toggleCard(this)">
+        <span class="info-card-icon">📐</span>
+        <span class="info-card-title">Sets, Reps & Rest Explained</span>
+        <span class="info-card-arrow">›</span>
+      </div>
+      <div class="info-card-body">
+        <div class="fact-row"><span class="fact-label">Sets</span><span class="fact-val">Groups of reps you do in a row</span></div>
+        <div class="fact-row"><span class="fact-label">Reps</span><span class="fact-val">Times you do the movement</span></div>
+        <div class="fact-row"><span class="fact-label">Rest between sets</span><span class="fact-val amber">45–90 seconds</span></div>
+        <div class="fact-row"><span class="fact-label">Rest between exercises</span><span class="fact-val amber">60–120 seconds</span></div>
+        <div class="tip-block"><strong>💡 Tip</strong>Don't skip rest — your muscles need time to recover between sets or you lose strength and form on the next one.</div>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card-head" onclick="toggleCard(this)">
+        <span class="info-card-icon">🔥</span>
+        <span class="info-card-title">Warm-Up — Why It Matters</span>
+        <span class="info-card-arrow">›</span>
+      </div>
+      <div class="info-card-body">
+        <p style="margin:0 0 8px;">A proper warm-up raises your heart rate, loosens joints and primes your muscles. Skipping it is the #1 cause of injury.</p>
+        <div class="fact-row"><span class="fact-label">Duration</span><span class="fact-val amber">5–10 min</span></div>
+        <div class="fact-row"><span class="fact-label">Type</span><span class="fact-val">Light cardio + mobility</span></div>
+        <div class="fact-row"><span class="fact-label">Intensity</span><span class="fact-val">Low — just get warm</span></div>
+        <div class="tip-block"><strong>💡 Tip</strong>Dynamic stretches (leg swings, arm circles) before exercise. Save static stretches (holding) for after.</div>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card-head" onclick="toggleCard(this)">
+        <span class="info-card-icon">🏋️</span>
+        <span class="info-card-title">Progressive Overload</span>
+        <span class="info-card-arrow">›</span>
+      </div>
+      <div class="info-card-body">
+        <p style="margin:0 0 8px;">Your body adapts to exercise. To keep improving you need to gradually increase the challenge — this is progressive overload.</p>
+        <div class="fact-row"><span class="fact-label">Add reps</span><span class="fact-val">e.g. 10 → 12 → 15</span></div>
+        <div class="fact-row"><span class="fact-label">Add sets</span><span class="fact-val">e.g. 2 → 3 → 4</span></div>
+        <div class="fact-row"><span class="fact-label">Reduce rest</span><span class="fact-val">90s → 60s → 45s</span></div>
+        <div class="fact-row"><span class="fact-label">Add weight</span><span class="fact-val">When reps feel easy</span></div>
+        <div class="tip-block"><strong>💡 Tip</strong>Increase by 5–10% at a time. Going too fast leads to injury.</div>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card-head" onclick="toggleCard(this)">
+        <span class="info-card-icon">🎯</span>
+        <span class="info-card-title">Rep Ranges by Goal</span>
+        <span class="info-card-arrow">›</span>
+      </div>
+      <div class="info-card-body">
+        <div class="fact-row"><span class="fact-label">Strength</span><span class="fact-val amber">1–5 reps, heavy</span></div>
+        <div class="fact-row"><span class="fact-label">Muscle growth</span><span class="fact-val amber">6–12 reps, moderate</span></div>
+        <div class="fact-row"><span class="fact-label">Endurance</span><span class="fact-val amber">15–30 reps, light</span></div>
+        <div class="fact-row"><span class="fact-label">Fat loss</span><span class="fact-val amber">12–20 reps, circuit</span></div>
+        <div class="tip-block"><strong>💡 Tip</strong>The last 2–3 reps should feel hard. If every rep is easy, increase the challenge.</div>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card-head" onclick="toggleCard(this)">
+        <span class="info-card-icon">💥</span>
+        <span class="info-card-title">Common Exercise Mistakes</span>
+        <span class="info-card-arrow">›</span>
+      </div>
+      <div class="info-card-body">
+        <div class="fact-row"><span class="fact-label">Rounding your back</span><span class="fact-val" style="color:#c03020;border-color:#c03020;background:rgba(200,48,32,0.08);">Injury risk</span></div>
+        <div class="fact-row"><span class="fact-label">Skipping warm-up</span><span class="fact-val" style="color:#c03020;border-color:#c03020;background:rgba(200,48,32,0.08);">Injury risk</span></div>
+        <div class="fact-row"><span class="fact-label">Going too fast</span><span class="fact-val" style="color:#c03020;border-color:#c03020;background:rgba(200,48,32,0.08);">Less effective</span></div>
+        <div class="fact-row"><span class="fact-label">Not breathing</span><span class="fact-val" style="color:#c03020;border-color:#c03020;background:rgba(200,48,32,0.08);">Drops performance</span></div>
+        <div class="fact-row"><span class="fact-label">Skipping rest days</span><span class="fact-val" style="color:#c03020;border-color:#c03020;background:rgba(200,48,32,0.08);">Overtraining</span></div>
+        <div class="tip-block"><strong>💡 Tip</strong>Slow down. A controlled 3-second descent on a squat builds more muscle than bouncing up and down fast.</div>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card-head" onclick="toggleCard(this)">
+        <span class="info-card-icon">🗓️</span>
+        <span class="info-card-title">How Often to Train</span>
+        <span class="info-card-arrow">›</span>
+      </div>
+      <div class="info-card-body">
+        <div class="fact-row"><span class="fact-label">Beginner</span><span class="fact-val amber">3 days / week</span></div>
+        <div class="fact-row"><span class="fact-label">Intermediate</span><span class="fact-val amber">4–5 days / week</span></div>
+        <div class="fact-row"><span class="fact-label">Advanced</span><span class="fact-val amber">5–6 days / week</span></div>
+        <div class="fact-row"><span class="fact-label">Rest days needed</span><span class="fact-val">At least 1–2 / week</span></div>
+        <div class="tip-block"><strong>💡 Tip</strong>Muscles grow during rest, not during the workout. More training is not always better.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── DIET TAB ────────────────────────────────────────────────────────── -->
+  <div class="tab-panel" id="tab-diet">
+    <div class="sec-head">Diet Guide</div>
+    <div class="sec-sub">Fuel your body right for your goal.</div>
+
+    <div class="info-card open">
+      <div class="info-card-head" onclick="toggleCard(this)">
+        <span class="info-card-icon">⚖️</span>
+        <span class="info-card-title">The 3 Macronutrients</span>
+        <span class="info-card-arrow">›</span>
+      </div>
+      <div class="info-card-body">
+        <div class="macro-bar-wrap">
+          <div class="macro-bar-label"><span>Protein</span><span style="color:var(--amber-dk);font-weight:700;">4 kcal/g</span></div>
+          <div class="macro-bar-track"><div class="macro-bar-fill" style="width:80%;background:var(--amber);"></div></div>
+        </div>
+        <div class="macro-bar-wrap">
+          <div class="macro-bar-label"><span>Carbohydrates</span><span style="color:var(--teal);font-weight:700;">4 kcal/g</span></div>
+          <div class="macro-bar-track"><div class="macro-bar-fill" style="width:100%;background:var(--teal);"></div></div>
+        </div>
+        <div class="macro-bar-wrap">
+          <div class="macro-bar-label"><span>Fats</span><span style="color:var(--muted);font-weight:700;">9 kcal/g</span></div>
+          <div class="macro-bar-track"><div class="macro-bar-fill" style="width:55%;background:var(--muted);"></div></div>
+        </div>
+        <div class="tip-block" style="margin-top:12px;"><strong>💡 Tip</strong>No macro is bad. Balance matters more than cutting anything out completely.</div>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card-head" onclick="toggleCard(this)">
+        <span class="info-card-icon">🥩</span>
+        <span class="info-card-title">Protein — How Much & Why</span>
+        <span class="info-card-arrow">›</span>
+      </div>
+      <div class="info-card-body">
+        <p style="margin:0 0 8px;">Protein repairs muscle fibers broken down during exercise. Without enough, you won't recover or grow.</p>
+        <div class="fact-row"><span class="fact-label">Fat loss goal</span><span class="fact-val amber">1.6–2.0g per kg bodyweight</span></div>
+        <div class="fact-row"><span class="fact-label">Muscle building</span><span class="fact-val amber">2.0–2.4g per kg bodyweight</span></div>
+        <div class="fact-row"><span class="fact-label">General health</span><span class="fact-val amber">1.2–1.6g per kg bodyweight</span></div>
+        <div class="fact-row"><span class="fact-label">Timing</span><span class="fact-val">Spread across all meals</span></div>
+        <p style="margin:10px 0 4px;font-size:0.75rem;color:var(--muted);font-weight:600;">Good sources:</p>
+        <div class="muscle-chips">
+          <span class="muscle-chip">Eggs</span><span class="muscle-chip">Chicken</span><span class="muscle-chip">Fish</span>
+          <span class="muscle-chip">Greek Yogurt</span><span class="muscle-chip">Lentils</span><span class="muscle-chip">Tofu</span>
+          <span class="muscle-chip">Cottage Cheese</span><span class="muscle-chip">Paneer</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card-head" onclick="toggleCard(this)">
+        <span class="info-card-icon">🍚</span>
+        <span class="info-card-title">Carbs — Energy, Not the Enemy</span>
+        <span class="info-card-arrow">›</span>
+      </div>
+      <div class="info-card-body">
+        <p style="margin:0 0 8px;">Carbs are your body's preferred fuel source. Cutting them too low kills workout performance.</p>
+        <div class="fact-row"><span class="fact-label">Pre-workout</span><span class="fact-val amber">Eat carbs 1–2h before</span></div>
+        <div class="fact-row"><span class="fact-label">Post-workout</span><span class="fact-val amber">Replenish glycogen stores</span></div>
+        <div class="fact-row"><span class="fact-label">Best sources</span><span class="fact-val">Complex, whole foods</span></div>
+        <div class="muscle-chips" style="margin-top:8px;">
+          <span class="muscle-chip">Rice</span><span class="muscle-chip">Oats</span><span class="muscle-chip">Sweet Potato</span>
+          <span class="muscle-chip">Banana</span><span class="muscle-chip">Whole Wheat</span><span class="muscle-chip">Quinoa</span>
+        </div>
+        <div class="tip-block"><strong>💡 Tip</strong>Time your biggest carb meals around your workouts for best energy and recovery.</div>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card-head" onclick="toggleCard(this)">
+        <span class="info-card-icon">💧</span>
+        <span class="info-card-title">Hydration</span>
+        <span class="info-card-arrow">›</span>
+      </div>
+      <div class="info-card-body">
+        <div class="fact-row"><span class="fact-label">Daily minimum</span><span class="fact-val amber">2.5 – 3.5 litres</span></div>
+        <div class="fact-row"><span class="fact-label">Add for exercise</span><span class="fact-val amber">+500ml per hour</span></div>
+        <div class="fact-row"><span class="fact-label">Check colour</span><span class="fact-val">Pale yellow = good</span></div>
+        <div class="fact-row"><span class="fact-label">Avoid</span><span class="fact-val">Sugary sports drinks</span></div>
+        <div class="tip-block"><strong>💡 Tip</strong>Even mild dehydration (2%) reduces strength and focus significantly. Drink before you feel thirsty.</div>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card-head" onclick="toggleCard(this)">
+        <span class="info-card-icon">🍽️</span>
+        <span class="info-card-title">Meal Timing</span>
+        <span class="info-card-arrow">›</span>
+      </div>
+      <div class="info-card-body">
+        <div class="fact-row"><span class="fact-label">Pre-workout</span><span class="fact-val">Carbs + protein, 1–2h before</span></div>
+        <div class="fact-row"><span class="fact-label">Post-workout</span><span class="fact-val amber">Protein within 2h</span></div>
+        <div class="fact-row"><span class="fact-label">Meals per day</span><span class="fact-val">3–5 meals</span></div>
+        <div class="fact-row"><span class="fact-label">Late night</span><span class="fact-val">Keep it light</span></div>
+        <div class="tip-block"><strong>💡 Tip</strong>Consistency beats perfection. Eating 3 good meals daily is better than perfect eating 4 days and nothing the other 3.</div>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card-head" onclick="toggleCard(this)">
+        <span class="info-card-icon">📉</span>
+        <span class="info-card-title">Calories — The Basics</span>
+        <span class="info-card-arrow">›</span>
+      </div>
+      <div class="info-card-body">
+        <div class="fact-row"><span class="fact-label">Fat loss</span><span class="fact-val amber">Deficit of 300–500 kcal/day</span></div>
+        <div class="fact-row"><span class="fact-label">Muscle building</span><span class="fact-val amber">Surplus of 200–400 kcal/day</span></div>
+        <div class="fact-row"><span class="fact-label">Maintenance</span><span class="fact-val">Eat at TDEE</span></div>
+        <div class="fact-row"><span class="fact-label">Crash diets</span><span class="fact-val" style="color:#c03020;border-color:#c03020;background:rgba(200,48,32,0.08);">Avoid — lose muscle</span></div>
+        <div class="tip-block"><strong>💡 Tip</strong>Losing 0.5–1kg per week is safe and sustainable. Faster than that usually means you're losing muscle too.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── RECOVERY TAB ────────────────────────────────────────────────────── -->
+  <div class="tab-panel" id="tab-recovery">
+    <div class="sec-head">Recovery Guide</div>
+    <div class="sec-sub">Where gains actually happen — not in the gym.</div>
+
+    <div class="info-card open">
+      <div class="info-card-head" onclick="toggleCard(this)">
+        <span class="info-card-icon">😴</span>
+        <span class="info-card-title">Sleep — The #1 Recovery Tool</span>
+        <span class="info-card-arrow">›</span>
+      </div>
+      <div class="info-card-body">
+        <div class="fact-row"><span class="fact-label">Minimum</span><span class="fact-val amber">7 hours per night</span></div>
+        <div class="fact-row"><span class="fact-label">Optimal</span><span class="fact-val amber">8–9 hours</span></div>
+        <div class="fact-row"><span class="fact-label">Growth hormone release</span><span class="fact-val">Deep sleep (3–4h in)</span></div>
+        <div class="fact-row"><span class="fact-label">Bad sleep effect</span><span class="fact-val" style="color:#c03020;border-color:#c03020;background:rgba(200,48,32,0.08);">–20% strength next day</span></div>
+        <div class="tip-block"><strong>💡 Tip</strong>No phone 30 min before bed. Blue light suppresses melatonin and delays sleep onset by up to 90 minutes.</div>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card-head" onclick="toggleCard(this)">
+        <span class="info-card-icon">🧘</span>
+        <span class="info-card-title">Active Recovery Days</span>
+        <span class="info-card-arrow">›</span>
+      </div>
+      <div class="info-card-body">
+        <p style="margin:0 0 8px;">Rest days don't mean doing nothing. Light movement helps flush out soreness and speeds up recovery.</p>
+        <div class="fact-row"><span class="fact-label">Walking</span><span class="fact-val amber">20–30 min easy</span></div>
+        <div class="fact-row"><span class="fact-label">Stretching</span><span class="fact-val amber">10–15 min</span></div>
+        <div class="fact-row"><span class="fact-label">Yoga / mobility</span><span class="fact-val">Great option</span></div>
+        <div class="fact-row"><span class="fact-label">Avoid</span><span class="fact-val">Heavy lifting on rest days</span></div>
+        <div class="tip-block"><strong>💡 Tip</strong>A 20-min walk on rest days can reduce next-day soreness by moving blood through tired muscles.</div>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card-head" onclick="toggleCard(this)">
+        <span class="info-card-icon">🩹</span>
+        <span class="info-card-title">Muscle Soreness (DOMS)</span>
+        <span class="info-card-arrow">›</span>
+      </div>
+      <div class="info-card-body">
+        <p style="margin:0 0 8px;">Delayed Onset Muscle Soreness (DOMS) peaks 24–48h after a workout. It's normal, especially for beginners.</p>
+        <div class="fact-row"><span class="fact-label">When it peaks</span><span class="fact-val">24–48h after workout</span></div>
+        <div class="fact-row"><span class="fact-label">Duration</span><span class="fact-val">2–5 days</span></div>
+        <div class="fact-row"><span class="fact-label">Relieved by</span><span class="fact-val amber">Movement, heat, protein</span></div>
+        <div class="fact-row"><span class="fact-label">Sharp/joint pain</span><span class="fact-val" style="color:#c03020;border-color:#c03020;background:rgba(200,48,32,0.08);">Stop — see a doctor</span></div>
+        <div class="tip-block"><strong>💡 Tip</strong>DOMS is not a sign of a good workout — just a sign your muscles were challenged in a new way. It fades as you adapt.</div>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card-head" onclick="toggleCard(this)">
+        <span class="info-card-icon">🧊</span>
+        <span class="info-card-title">Stretching & Cool-Down</span>
+        <span class="info-card-arrow">›</span>
+      </div>
+      <div class="info-card-body">
+        <div class="fact-row"><span class="fact-label">Duration</span><span class="fact-val amber">5–10 min post-workout</span></div>
+        <div class="fact-row"><span class="fact-label">Hold each stretch</span><span class="fact-val amber">20–40 seconds</span></div>
+        <div class="fact-row"><span class="fact-label">Type</span><span class="fact-val">Static (hold, don't bounce)</span></div>
+        <div class="fact-row"><span class="fact-label">Before workout</span><span class="fact-val">Dynamic only</span></div>
+        <div class="tip-block"><strong>💡 Tip</strong>Static stretching before exercise reduces power output by up to 8%. Always stretch after, not before.</div>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card-head" onclick="toggleCard(this)">
+        <span class="info-card-icon">⚠️</span>
+        <span class="info-card-title">Signs of Overtraining</span>
+        <span class="info-card-arrow">›</span>
+      </div>
+      <div class="info-card-body">
+        <p style="margin:0 0 8px;">Training too much without enough rest leads to overtraining syndrome — your performance actually drops.</p>
+        <div class="fact-row"><span class="fact-label">Persistent fatigue</span><span class="fact-val" style="color:#c03020;border-color:#c03020;background:rgba(200,48,32,0.08);">Warning sign</span></div>
+        <div class="fact-row"><span class="fact-label">Mood drops / irritability</span><span class="fact-val" style="color:#c03020;border-color:#c03020;background:rgba(200,48,32,0.08);">Warning sign</span></div>
+        <div class="fact-row"><span class="fact-label">Plateauing strength</span><span class="fact-val" style="color:#c03020;border-color:#c03020;background:rgba(200,48,32,0.08);">Warning sign</span></div>
+        <div class="fact-row"><span class="fact-label">Getting sick often</span><span class="fact-val" style="color:#c03020;border-color:#c03020;background:rgba(200,48,32,0.08);">Warning sign</span></div>
+        <div class="tip-block"><strong>💡 Tip</strong>If you feel worse after 2+ weeks of training, take a full deload week at 50% intensity. Rest is not weakness.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function(){const v=localStorage.getItem('fitbot-dark');if(v==='1')document.documentElement.classList.add('dark');})();
+
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function toggleCard(head) {
+  head.parentElement.classList.toggle('open');
+}
+</script>
+</body>
+</html>

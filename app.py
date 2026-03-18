@@ -182,8 +182,11 @@ def dashboard():
     cursor.execute("""
         SELECT o.name, o.workout_place, o.intent, o.time_available, o.energy_level,
                p.age, p.gender, p.height_cm, p.weight_kg, p.activity_level, p.goal,
-               p.steps_today, IFNULL(p.xp,0) as xp, IFNULL(p.level,1) as level,
-               IFNULL(p.streak,0) as streak
+               p.steps_today, IFNULL(p.distance_today,0) as distance_today, IFNULL(p.xp,0) as xp, IFNULL(p.level,1) as level,
+               IFNULL(p.streak,0) as streak,
+               p.last_period_date, IFNULL(p.cycle_length,28) as cycle_length,
+               IFNULL(p.period_length,5) as period_length,
+               p.profile_pic
         FROM onboarding o LEFT JOIN profile p ON o.user_id=p.user_id
         WHERE o.user_id=?
     """, (session["user_id"],))
@@ -191,44 +194,168 @@ def dashboard():
     if not user:
         return redirect("/about")
     assistant_message = "You're on Level " + str(user["level"]) + " — keep pushing!"
-    return render_template("dashboard.html", assistant_message=assistant_message, **user)
+
+    # ── Pre-compute period calendar data (server-side, no JS needed) ──────
+    from datetime import date as dt_date, datetime as dt_datetime
+    import calendar as cal_mod
+
+    today = dt_date.today()
+    cal_year  = today.year
+    cal_month = today.month
+    cal_month_name = today.strftime("%B %Y")
+
+    last_period_date = user["last_period_date"]
+    cycle_length     = user["cycle_length"] or 28
+    period_length    = user["period_length"] or 5
+
+    period_days_set  = set()
+    fertile_days_set = set()
+
+    if last_period_date:
+        try:
+            last = dt_datetime.strptime(last_period_date, "%Y-%m-%d").date()
+            for offset in range(-2, 3):
+                cycle_start = dt_date.fromordinal(last.toordinal() + offset * cycle_length)
+                for d in range(period_length):
+                    dd = dt_date.fromordinal(cycle_start.toordinal() + d)
+                    if dd.year == cal_year and dd.month == cal_month:
+                        period_days_set.add(dd.day)
+                for d in range(10, 17):
+                    dd = dt_date.fromordinal(cycle_start.toordinal() + d)
+                    if dd.year == cal_year and dd.month == cal_month:
+                        fertile_days_set.add(dd.day)
+        except:
+            pass
+
+    # Build calendar grid rows: each cell = (day_num, classes)
+    first_weekday = cal_mod.monthrange(cal_year, cal_month)[0]  # Mon=0
+    first_weekday = (first_weekday + 1) % 7  # convert to Sun=0
+    days_in_month = cal_mod.monthrange(cal_year, cal_month)[1]
+    prev_days = cal_mod.monthrange(cal_year, cal_month - 1 if cal_month > 1 else 12)[1]
+
+    cal_cells = []
+    for i in range(first_weekday):
+        cal_cells.append({"day": prev_days - first_weekday + 1 + i, "cls": "mc-day other-month"})
+    for d in range(1, days_in_month + 1):
+        cls = "mc-day"
+        if d == today.day:          cls += " today"
+        elif d in period_days_set:  cls += " period"
+        elif d in fertile_days_set: cls += " fertile"
+        cal_cells.append({"day": d, "cls": cls})
+    while len(cal_cells) % 7 != 0:
+        cal_cells.append({"day": len(cal_cells) - days_in_month - first_weekday + 1, "cls": "mc-day other-month"})
+
+    # Week dots for current week
+    week_day_labels = ["S","M","T","W","T","F","S"]
+    today_dow = today.weekday()
+    today_dow = (today_dow + 1) % 7  # Sun=0
+    week_start_ord = today.toordinal() - today_dow
+    week_dots = []
+    for i in range(7):
+        day = dt_date.fromordinal(week_start_ord + i)
+        cls = "wdot"
+        if i == today_dow: cls += " on"
+        elif day.month == cal_month and day.day in period_days_set: cls += " on"
+        elif day.month == cal_month and day.day in fertile_days_set: cls += " mid"
+        week_dots.append({"label": week_day_labels[i], "cls": cls})
+
+    # Phase label
+    if last_period_date and period_days_set or fertile_days_set:
+        try:
+            last = dt_datetime.strptime(last_period_date, "%Y-%m-%d").date()
+            days_since = (today - last).days % cycle_length
+            if days_since < period_length:     phase_label = "🔴 Period phase"
+            elif days_since < 13:              phase_label = "🌱 Follicular phase"
+            elif days_since < 16:              phase_label = "✨ Ovulation window"
+            else:                              phase_label = "🌙 Luteal phase"
+        except:
+            phase_label = "Cycle tracking active"
+    else:
+        phase_label = "Set up tracking →"
+
+    return render_template("dashboard.html",
+        assistant_message=assistant_message,
+        cal_month_name=cal_month_name,
+        cal_cells=cal_cells,
+        week_dots=week_dots,
+        phase_label=phase_label,
+        **user)
 
 @app.route("/edit-profile", methods=["GET", "POST"])
 def edit_profile():
     if "user_id" not in session:
         return redirect("/")
+    db = get_db()
+    cursor = db.cursor()
+    uid = session["user_id"]
+
     if request.method == "POST":
-        db = get_db()
-        cursor = db.cursor()
-        uid = session["user_id"]
-        if request.form.get("age") or request.form.get("height") or request.form.get("weight"):
-            cursor.execute("SELECT user_id FROM profile WHERE user_id=?", (uid,))
-            if cursor.fetchone():
-                cursor.execute("""
-                    UPDATE profile
-                    SET age=COALESCE(NULLIF(?,''),age),
-                        gender=COALESCE(NULLIF(?,''),gender),
-                        height_cm=COALESCE(NULLIF(?,''),height_cm),
-                        weight_kg=COALESCE(NULLIF(?,''),weight_kg),
-                        activity_level=COALESCE(NULLIF(?,''),activity_level),
-                        goal=COALESCE(NULLIF(?,''),goal)
-                    WHERE user_id=?
-                """, (request.form.get("age"), request.form.get("gender"),
-                      request.form.get("height"), request.form.get("weight"),
-                      request.form.get("activity"), request.form.get("goal"), uid))
-            else:
-                cursor.execute("""
-                    INSERT INTO profile (user_id,age,gender,height_cm,weight_kg,activity_level,goal)
-                    VALUES (?,?,?,?,?,?,?)
-                """, (uid, request.form.get("age") or None, request.form.get("gender") or None,
-                      request.form.get("height") or None, request.form.get("weight") or None,
-                      request.form.get("activity") or None, request.form.get("goal") or None))
-        if request.form.get("name"):
-            cursor.execute("UPDATE onboarding SET name=? WHERE user_id=?",
-                           (request.form.get("name"), uid))
+        # ── Profile pic upload ────────────────────────────────────────────
+        pic_path = None
+        if "profile_pic" in request.files:
+            f = request.files["profile_pic"]
+            if f and f.filename:
+                import uuid, os
+                ext = f.filename.rsplit(".", 1)[-1].lower()
+                fname = f"{uid}_{uuid.uuid4().hex[:8]}.{ext}"
+                save_dir = os.path.join(app.root_path, "static", "uploads", "profile_pics")
+                os.makedirs(save_dir, exist_ok=True)
+                f.save(os.path.join(save_dir, fname))
+                pic_path = f"uploads/profile_pics/{fname}"
+
+        # ── Helper: None if empty string ─────────────────────────────────
+        def val(key):
+            v = request.form.get(key, "").strip()
+            return v if v else None
+
+        # ── Upsert profile row ────────────────────────────────────────────
+        cursor.execute("SELECT user_id FROM profile WHERE user_id=?", (uid,))
+        exists = cursor.fetchone()
+
+        if exists:
+            cursor.execute("""
+                UPDATE profile SET
+                    age            = COALESCE(?, age),
+                    gender         = COALESCE(?, gender),
+                    dob            = COALESCE(?, dob),
+                    phone          = COALESCE(?, phone),
+                    about          = COALESCE(?, about),
+                    height_cm      = COALESCE(?, height_cm),
+                    weight_kg      = COALESCE(?, weight_kg),
+                    activity_level = COALESCE(?, activity_level),
+                    goal           = COALESCE(?, goal),
+                    health_notes   = COALESCE(?, health_notes),
+                    profile_pic    = COALESCE(?, profile_pic)
+                WHERE user_id = ?
+            """, (val("age"), val("gender"), val("dob"), val("phone"),
+                   val("about"), val("height"), val("weight"),
+                   val("activity"), val("goal"), val("health_notes"),
+                   pic_path, uid))
+        else:
+            cursor.execute("""
+                INSERT INTO profile
+                    (user_id, age, gender, dob, phone, about,
+                     height_cm, weight_kg, activity_level, goal, health_notes, profile_pic)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+            """, (uid, val("age"), val("gender"), val("dob"), val("phone"),
+                   val("about"), val("height"), val("weight"),
+                   val("activity"), val("goal"), val("health_notes"), pic_path))
+
+        # ── Update name in onboarding ─────────────────────────────────────
+        if val("name"):
+            cursor.execute("UPDATE onboarding SET name=? WHERE user_id=?", (val("name"), uid))
+
         db.commit()
-        return redirect("/settings")
-    return render_template("edit_profile.html")
+        return redirect("/edit-profile?saved=1")
+
+    # ── GET — load existing data ──────────────────────────────────────────
+    cursor.execute("SELECT * FROM profile WHERE user_id=?", (uid,))
+    profile = cursor.fetchone()
+    cursor.execute("SELECT name FROM onboarding WHERE user_id=?", (uid,))
+    onb = cursor.fetchone()
+    name = onb["name"] if onb else ""
+    saved = request.args.get("saved") == "1"
+    return render_template("edit_profile.html", profile=profile, name=name, saved=saved)
 
 @app.route("/settings")
 def settings():
@@ -237,6 +364,61 @@ def settings():
 @app.route("/about_app")
 def about_app():
     return render_template("about_app.html")
+
+@app.route("/chat", methods=["POST"])
+def chat():
+    if "user_id" not in session:
+        return {"reply": "Please log in first."}
+    data     = request.json or {}
+    message  = data.get("message", "").strip()
+    history  = data.get("history", [])[-10:]   # keep last 10 turns
+    user_ctx = data.get("user", {})
+    if not message:
+        return {"reply": "Ask me something!"}
+
+    system = (
+        "You are FitBot Coach, a knowledgeable and friendly fitness assistant built into the FitBot Pro app. "
+        "You specialise in workout programming, exercise form, nutrition, diet, recovery, and general fitness. "
+        "Keep answers clear, practical and concise — use short paragraphs or bullet points when helpful. "
+        "You ONLY answer questions related to fitness, workouts, diet, nutrition, health, and recovery. "
+        "If asked anything unrelated, politely redirect back to fitness topics. "
+        f"The user's name is {user_ctx.get('name','there')}, "
+        f"their goal is {user_ctx.get('goal','general fitness')}, "
+        f"they are Level {user_ctx.get('level',1)} in the app. "
+        "Personalise your advice to their goal when relevant."
+    )
+
+    messages = []
+    for turn in history[:-1]:   # everything except the last (current) message
+        messages.append({"role": turn["role"], "content": turn["content"]})
+    messages.append({"role": "user", "content": message})
+
+    try:
+        import google.generativeai as genai
+        import os
+        genai.configure(api_key=os.environ.get("GEMINI_API_KEY", ""))
+        model = genai.GenerativeModel(
+            model_name="gemini-2.0-flash",
+            system_instruction=system
+        )
+        # Build chat history for Gemini format
+        gemini_history = []
+        for turn in history[:-1]:
+            role = "user" if turn["role"] == "user" else "model"
+            gemini_history.append({"role": role, "parts": [turn["content"]]})
+        chat = model.start_chat(history=gemini_history)
+        resp = chat.send_message(message)
+        reply = resp.text
+    except Exception as e:
+        reply = f"Sorry, I couldn't connect right now. ({str(e)[:80]})"
+
+    return {"reply": reply}
+
+@app.route("/learn")
+def learn():
+    if "user_id" not in session:
+        return redirect("/")
+    return render_template("learn.html")
 
 @app.route("/xp-status")
 def xp_status():
@@ -316,9 +498,10 @@ def save_walk():
             distance_today=IFNULL(distance_today,0)+?
         WHERE user_id=?
     """, (steps, calories, distance, session["user_id"]))
-    cursor.execute("UPDATE profile SET xp=IFNULL(xp,0)+? WHERE user_id=?",
-                   (steps // 100, session["user_id"]))
     db.commit()
+    xp_from_run = steps // 100
+    if xp_from_run > 0:
+        update_xp(session["user_id"], xp_from_run, "run")
     return {"success": True}
 
 @app.route("/run")
@@ -537,12 +720,10 @@ def toggle_habit(habit_id):
     xp_gained = 0
     if new_state == 1:
         xp_gained = habit_points
-        cursor.execute("""
-            UPDATE profile
-            SET xp=IFNULL(xp,0)+?, level=(IFNULL(xp,0)+?)/200+1, last_active=?
-            WHERE user_id=?
-        """, (xp_gained, xp_gained, today, session["user_id"]))
-    db.commit()
+        db.commit()
+        update_xp(session["user_id"], xp_gained, "habit")
+    else:
+        db.commit()
     return {"success": True, "completed": new_state, "xp": xp_gained}
 
 @app.route("/form-check/<exercise_type>")

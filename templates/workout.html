@@ -2,16 +2,78 @@
 <html lang="en">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>FitBot — Workout</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"></head>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<style>
+.ring-circle {
+  width:90px; height:90px; border-radius:50%;
+  border:3px solid var(--ink); background:var(--cream);
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-display); font-size:2rem; font-weight:900;
+  color:var(--ink); box-shadow:3px 3px 0 var(--ink); transition:all 0.25s;
+}
+.ring-circle.running { background:var(--amber-bg); border-color:var(--amber-dk); color:var(--amber-dk); box-shadow:3px 3px 0 var(--amber-dk); }
+.ring-circle.paused  { background:var(--cream3); border-color:var(--ink3); color:var(--ink3); box-shadow:3px 3px 0 var(--ink3); }
+.ring-circle.done    { background:var(--ink); color:var(--amber); border-color:var(--amber-dk); box-shadow:3px 3px 0 var(--amber-dk); }
+.ring-lbl { font-family:var(--font-display); font-size:0.62rem; font-weight:800; text-transform:uppercase; letter-spacing:0.1em; color:var(--muted); margin-top:4px; }
+.ring-wrap { display:flex; flex-direction:column; align-items:center; margin:12px 0 10px; }
+.act-btn {
+  width:100%; padding:13px; margin-top:4px;
+  font-family:var(--font-display); font-size:0.85rem; font-weight:900;
+  text-transform:uppercase; letter-spacing:0.05em;
+  border-radius:var(--r-sm); border:2px solid var(--ink); cursor:pointer;
+  transition:transform 0.1s, box-shadow 0.1s;
+}
+.act-btn.start  { background:var(--ink); color:var(--cream); box-shadow:3px 3px 0 var(--muted); }
+.act-btn.pause  { background:var(--amber); border-color:var(--amber-dk); color:var(--ink); box-shadow:3px 3px 0 var(--amber-dk); }
+.act-btn.resume { background:var(--ink); color:var(--cream); box-shadow:3px 3px 0 var(--muted); }
+.act-btn.locked { opacity:0.35; cursor:not-allowed; box-shadow:none; background:var(--ink); color:var(--cream); }
+.act-btn:not(.locked):hover { transform:translate(-1px,-1px); }
+.sets-lbl { font-family:var(--font-display); font-size:0.62rem; font-weight:800; text-transform:uppercase; letter-spacing:0.09em; color:var(--muted); margin-bottom:8px; }
+.sets-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+.set-dot {
+  width:50px; height:50px; border-radius:8px;
+  border:2px solid var(--ink); background:var(--cream);
+  font-family:var(--font-display); font-size:1rem; font-weight:900;
+  color:var(--ink); cursor:pointer; box-shadow:2px 2px 0 var(--ink);
+  display:flex; align-items:center; justify-content:center; transition:all 0.1s;
+}
+.set-dot:disabled { opacity:0.28; cursor:not-allowed; }
+.set-dot.done { background:var(--amber); border-color:var(--amber-dk); color:var(--ink); box-shadow:2px 2px 0 var(--amber-dk); }
+.set-stat { font-family:var(--font-display); font-size:0.72rem; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:var(--amber-dk); min-height:18px; }
+.rest-overlay { display:none; position:fixed; inset:0; z-index:600; background:var(--ink); flex-direction:column; align-items:center; justify-content:center; gap:6px; }
+.rest-overlay.show { display:flex; }
+.ro-lbl  { font-family:var(--font-display); font-size:1.1rem; font-weight:900; text-transform:uppercase; letter-spacing:0.12em; color:var(--amber); }
+.ro-num  { font-family:var(--font-display); font-size:7rem; font-weight:900; line-height:1; color:var(--cream); }
+.ro-hint { font-family:var(--font-display); font-size:0.65rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted); margin-top:4px; }
+.ro-skip { margin-top:24px; font-family:var(--font-display); font-size:0.75rem; font-weight:800; text-transform:uppercase; letter-spacing:0.07em; background:transparent; color:var(--muted); border:2px solid var(--muted); border-radius:4px; padding:10px 28px; cursor:pointer; }
+.ro-skip:hover { color:var(--cream); border-color:var(--cream); }
+.wo-topbar { position:fixed; top:0; left:0; right:0; z-index:100; background:var(--cream); border-bottom:2px solid var(--ink); padding:10px 14px; display:flex; align-items:center; gap:10px; }
+.wo-title { flex:1; font-family:var(--font-display); font-size:0.88rem; font-weight:900; text-transform:uppercase; letter-spacing:0.04em; color:var(--ink); text-align:center; }
+.wo-badge { font-family:var(--font-display); font-size:0.75rem; font-weight:900; background:var(--ink); color:var(--amber); border:2px solid var(--amber-dk); border-radius:4px; padding:4px 10px; white-space:nowrap; }
+.wo-progbar { position:fixed; top:52px; left:0; right:0; height:5px; background:var(--cream3); border-bottom:1px solid var(--ink3); z-index:99; }
+.wo-progfill { height:100%; background:var(--amber); transition:width 0.5s; }
+.done-wrap { text-align:center; padding:30px 16px; }
+.done-h { font-family:var(--font-display); font-size:2.8rem; font-weight:900; text-transform:uppercase; line-height:1; color:var(--ink); margin:12px 0 8px; }
+.done-xp { display:inline-block; font-family:var(--font-display); font-size:1rem; font-weight:900; text-transform:uppercase; letter-spacing:0.06em; background:var(--ink); color:var(--amber); border:2px solid var(--amber-dk); border-radius:6px; padding:10px 28px; box-shadow:3px 3px 0 var(--amber-dk); margin:14px 0; }
+</style>
+</head>
 <body>
-<a href="/dashboard" class="back-btn">&#8592;</a>
+<script>(function(){const v=localStorage.getItem('fitbot-dark');if(v==='1')document.documentElement.classList.add('dark');})();</script>
 
-<!-- Form-check camera modal -->
+<!-- REST OVERLAY -->
+<div class="rest-overlay" id="restOv">
+  <div class="ro-lbl">Rest</div>
+  <div class="ro-num" id="roNum">30</div>
+  <div class="ro-hint" id="roHint"></div>
+  <button class="ro-skip" onclick="skipRest()">Skip →</button>
+</div>
+
+<!-- FORM MODAL -->
 <div class="form-modal-overlay" id="formModal">
   <div class="form-modal">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
       <h3 style="margin:0;">Form Check</h3>
-      <button onclick="closeCamera()" class="btn btn-ghost" style="padding:6px 12px;font-size:0.78rem;border-radius:6px;">Stop Camera</button>
+      <button onclick="closeCamera()" class="btn btn-ghost" style="padding:6px 12px;font-size:0.78rem;">✕ Stop</button>
     </div>
     <video id="camFeed" autoplay playsinline style="border-radius:10px;width:100%;margin-bottom:10px;"></video>
     <div class="form-feedback" id="formFeedback">Analysing your form...</div>
@@ -21,145 +83,279 @@
   </div>
 </div>
 
-<div class="page" style="padding-top:68px; align-items:flex-start;">
-<div class="card fade-in">
-  <h2 style="margin-bottom:3px;">{{ day_focus or "Today's Workout" }}</h2>
-  <p style="margin-bottom:14px;">{% if rest_day %}Active recovery — light movement only.{% else %}Move with control. Quality over speed.{% endif %}</p>
+<!-- TOPBAR -->
+<div class="wo-topbar">
+  <a href="/dashboard" class="btn btn-ghost" style="padding:5px 10px;font-size:0.78rem;flex-shrink:0;">← Back</a>
+  <div class="wo-title">{{ day_focus or "Today's Workout" }}</div>
+  <div class="wo-badge" id="woBadge">1 / {{ (warmup|length)+(main|length)+(cooldown|length) }}</div>
+</div>
+<div class="wo-progbar"><div class="wo-progfill" id="woFill" style="width:0%"></div></div>
+
+<div class="page" style="padding-top:74px;align-items:flex-start;">
+<div class="card fade-in" style="padding-bottom:30px;">
+
   {% if day_focus and not rest_day %}
-  <div style="display:inline-flex;align-items:center;gap:8px;background:var(--amber-bg);border:2px solid var(--amber-dk);border-radius:4px;padding:4px 12px;margin-bottom:12px;box-shadow:2px 2px 0 var(--amber-dk);">
+  <div style="display:inline-flex;align-items:center;gap:8px;background:var(--amber-bg);border:2px solid var(--amber-dk);border-radius:4px;padding:4px 12px;margin-bottom:14px;box-shadow:2px 2px 0 var(--amber-dk);">
     <span style="font-family:var(--font-display);font-size:0.7rem;font-weight:800;color:var(--amber-dk);text-transform:uppercase;letter-spacing:0.08em;">{{ ["MON","TUE","WED","THU","FRI","SAT","SUN"][day_num-1] }} · {{ day_focus }}</span>
   </div>
   {% endif %}
 
-  <div class="prog-strip"><div class="prog-fill" id="pbar" style="width:0%"></div></div>
-  <div style="display:flex;justify-content:space-between;font-size:0.76rem;font-weight:600;color:var(--muted);margin-bottom:16px;">
-    <span>Exercise <span id="ci" style="color:var(--teal);">1</span> / {{ (warmup|length) + (main|length) + (cooldown|length) }}</span>
-    <span id="pp">0%</span>
-  </div>
-
   {% set all = warmup + main + cooldown %}
-  {% for ex in all %}
-  <div class="ex-card" id="ec-{{ loop.index0 }}">
-    <span class="ex-phase">{% if loop.index0 < warmup|length %}Warm-up{% elif loop.index0 < (warmup|length + main|length) %}Main{% else %}Cool-down{% endif %}</span>
-    <h3>{{ ex.name }}</h3>
+  {% set total = (warmup|length)+(main|length)+(cooldown|length) %}
+
+  {% for ex in all %}{% set i = loop.index0 %}
+  <div class="ex-card{% if loop.first %} visible{% endif %}" id="ec-{{i}}" style="{% if not loop.first %}display:none;{% endif %}">
+
+    <span class="ex-phase">
+      {% if i < warmup|length %}Warm-up
+      {% elif i < (warmup|length+main|length) %}Main
+      {% else %}Cool-down{% endif %}
+    </span>
+    <h3 style="margin:8px 0 4px;">{{ ex.name }}</h3>
     <div class="ex-meta">
-      {% if ex.sets %}<span>{{ ex.sets }} &times; {{ ex.reps }} reps</span>{% else %}<span>{{ ex.duration }}s</span>{% endif %}
-      <span>Rest {{ ex.rest_seconds or 30 }}s</span>
-      <span>Timer: <b id="et-{{ loop.index0 }}" style="color:var(--teal);">{{ ex.duration or 30 }}</b>s</span>
+      {% if ex.sets %}<span>{{ ex.sets }} × {{ ex.reps }} reps</span><span>{{ ex.rest_seconds or 60 }}s rest between sets</span>
+      {% else %}<span>{{ ex.duration or 30 }}s</span><span>Rest {{ ex.rest_seconds or 30 }}s after</span>{% endif %}
+      <span>{{ ex.type or ex.category }}</span>
     </div>
-    <div style="border-radius:10px;overflow:hidden;margin-bottom:10px;">
-      <iframe width="100%" height="180" src="https://www.youtube.com/embed/{{ ex.youtube_id }}" frameborder="0" allowfullscreen></iframe>
+
+    <div style="border-radius:10px;overflow:hidden;margin-bottom:12px;">
+      <iframe width="100%" height="180" src="https://www.youtube.com/embed/{{ ex.youtube_id }}?rel=0&modestbranding=1" frameborder="0" allowfullscreen loading="lazy"></iframe>
     </div>
-    <div class="ex-btns">
-      <button onclick="openCamera('{{ ex.type }}', {{ ex.id }})" class="btn btn-ghost" style="flex:1;">Check Form</button>
-      <button onclick="startEx({{ ex.duration or 30 }}, {{ ex.rest_seconds or 30 }}, {{ loop.index0 }})" class="btn" style="flex:1;">Start</button>
+
+    {% if ex.sets %}
+    <div class="sets-lbl">Tap each set number after you finish it</div>
+    <div class="sets-row">
+      {% for s in range(ex.sets) %}
+      <button class="set-dot" id="sd-{{i}}-{{s}}"
+              onclick="tapSet({{i}},{{s}},{{ex.sets}},{{ex.rest_seconds or 60}})"
+              {%if s>0%}disabled{%endif%}>{{s+1}}</button>
+      {% endfor %}
     </div>
-    <div class="rest-box" id="rb-{{ loop.index0 }}">Rest &mdash; <b id="rt-{{ loop.index0 }}"></b>s remaining</div>
+    <div class="set-stat" id="ss-{{i}}">Finish set 1 then tap it</div>
+
+    {% else %}
+    <div class="ring-wrap">
+      <div class="ring-circle" id="ring-{{i}}"><span id="rn-{{i}}">{{ ex.duration or 30 }}</span></div>
+      <div class="ring-lbl" id="rl-{{i}}">seconds</div>
+    </div>
+    <button class="act-btn start" id="ab-{{i}}"
+            onclick="timerTap({{i}},{{ex.duration or 30}},{{ex.rest_seconds or 30}})">▶ Start Exercise</button>
+    {% endif %}
+
+    <div class="ex-btns" style="margin-top:12px;">
+      <button onclick="openCamera('{{ex.type}}')" class="btn btn-ghost" style="flex:1;">📷 Form Check</button>
+      {% if not loop.last %}
+      <button onclick="skipEx({{i}})" class="btn btn-ghost" style="flex:1;">Skip →</button>
+      {% endif %}
+    </div>
   </div>
   {% endfor %}
-</div>
-</div>
+
+  <!-- DONE -->
+  <div class="ex-card" id="ec-{{total}}" style="display:none;">
+    <div class="done-wrap">
+      <div style="font-size:4rem;">🏆</div>
+      <div class="done-h">Workout<br>Complete!</div>
+      <p style="color:var(--muted);margin:0;">You crushed it. Rest up and come back stronger.</p>
+      <div class="done-xp">+40 XP Earned</div>
+      <a href="/dashboard" class="btn" style="display:block;background:var(--amber);border-color:var(--amber-dk);color:var(--ink);padding:14px;font-size:1rem;text-align:center;margin-top:8px;">← Back to Dashboard</a>
+    </div>
+  </div>
+
+</div></div>
 
 <script>
 (function(){const v=localStorage.getItem('fitbot-dark');if(v==='1')document.documentElement.classList.add('dark');})();
 
+const TOTAL = {{ total }};
 let cur = 0;
-const cards = document.querySelectorAll('.ex-card');
-const tot = {{ (warmup|length) + (main|length) + (cooldown|length) }};
-let camStream = null;
-let feedbackInterval = null;
-let currentExType = null;
 
-// Animate cards in one by one
-function revealCards() {
-  cards.forEach((c, i) => {
-    setTimeout(() => c.classList.add('visible'), 80 + i * 90);
-  });
-}
-revealCards();
+// ── ONE GLOBAL TIMER — only this can ever run ──────────────
+let tv = null;       // setInterval handle
+let ts = -1;         // slide index that owns the timer (-1 = none)
+let tLeft = 0;       // seconds remaining
+let tDur  = 0;       // original duration
+let tPaused = false;
 
-function upd() {
-  const p = Math.round((cur / tot) * 100);
-  document.getElementById('ci').innerText = cur + 1;
-  document.getElementById('pbar').style.width = p + '%';
-  document.getElementById('pp').innerText = p + '%';
-}
+// ── Rest ───────────────────────────────────────────────────
+let rv = null, rCb = null;
 
-function startEx(dur, rest, idx) {
-  let t = dur;
-  const e = document.getElementById('et-' + idx);
-  e.innerText = t;
-  const iv = setInterval(() => {
-    t--; e.innerText = t;
-    if (t <= 0) { clearInterval(iv); startRest(rest, idx); }
-  }, 1000);
-}
+// ── Sets ───────────────────────────────────────────────────
+const sCount = {};
 
-function startRest(sec, idx) {
-  const box = document.getElementById('rb-' + idx);
-  const el  = document.getElementById('rt-' + idx);
-  box.style.display = 'block'; let t = sec; el.innerText = t;
-  const iv = setInterval(() => {
-    t--; el.innerText = t;
-    if (t <= 0) { clearInterval(iv); box.style.display = 'none'; nxt(idx); }
-  }, 1000);
-}
+// ── Camera ─────────────────────────────────────────────────
+let cam = null, camIv = null;
 
-function nxt(idx) {
-  document.getElementById('ec-' + idx).classList.add('done');
-  if (idx + 1 < cards.length) {
-    cur = idx + 1; upd();
-    cards[cur].scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+// ══════════════════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════════════════
+function showSlide(idx) {
+  document.getElementById('ec-'+cur).style.display = 'none';
+  cur = idx;
+  const el = document.getElementById('ec-'+cur);
+  el.style.display = 'block';
+  el.classList.add('visible');
+  window.scrollTo({top:0, behavior:'smooth'});
+  if (cur < TOTAL) {
+    document.getElementById('woBadge').innerText = (cur+1)+' / '+TOTAL;
+    document.getElementById('woFill').style.width = Math.round(cur/TOTAL*100)+'%';
   } else {
-    fetch('/complete-workout', { method: 'POST' })
-      .then(r => r.json())
-      .then(() => { document.getElementById('pbar').style.width = '100%'; alert('Workout complete! +40 XP'); });
+    document.getElementById('woBadge').innerText = '✓ Done';
+    document.getElementById('woFill').style.width = '100%';
   }
 }
 
-// ---- FORM CHECK CAMERA ----
-function openCamera(exType, exId) {
-  currentExType = exType;
-  const modal = document.getElementById('formModal');
-  modal.classList.add('open');
-  const video = document.getElementById('camFeed');
-  document.getElementById('formFeedback').innerText = 'Starting camera...';
-
-  navigator.mediaDevices.getUserMedia({ video: true })
-    .then(stream => {
-      camStream = stream;
-      video.srcObject = stream;
-      document.getElementById('formFeedback').innerText = 'Camera active. Hold your position.';
-
-      // Poll form-check every 2.5s
-      feedbackInterval = setInterval(() => {
-        fetch('/form-check/' + exType)
-          .then(r => r.json())
-          .then(d => {
-            const fb = document.getElementById('formFeedback');
-            fb.innerText = d.message;
-            // Voice feedback
-            if (window.speechSynthesis && d.message) {
-              const utt = new SpeechSynthesisUtterance(d.message.replace(/[^\w\s.,!?-]/g, ''));
-              utt.rate = 1; utt.pitch = 1;
-              window.speechSynthesis.cancel();
-              window.speechSynthesis.speak(utt);
-            }
-          })
-          .catch(() => {});
-      }, 2500);
-    })
-    .catch(() => {
-      document.getElementById('formFeedback').innerText = 'Camera access denied. Allow camera permission to use this feature.';
-    });
+function skipEx(idx) {
+  if (ts === idx) resetTimer(idx);
+  advance(idx);
 }
 
-function closeCamera() {
-  if (feedbackInterval) { clearInterval(feedbackInterval); feedbackInterval = null; }
-  if (camStream) { camStream.getTracks().forEach(t => t.stop()); camStream = null; }
-  if (window.speechSynthesis) window.speechSynthesis.cancel();
+function advance(from) {
+  const next = from + 1;
+  showSlide(next);
+  if (next === TOTAL) fetch('/complete-workout',{method:'POST'}).catch(()=>{});
+}
+
+
+// ══════════════════════════════════════════════════════════
+// TIMER  —  single tap toggles start → pause → resume
+// ══════════════════════════════════════════════════════════
+function timerTap(idx, dur, restSecs) {
+  // Another slide's timer is active — block (shouldn't be visible but safe)
+  if (ts !== -1 && ts !== idx) return;
+
+  if (ts === -1) {
+    // START FRESH
+    tDur = dur; tLeft = dur; ts = idx; tPaused = false;
+    _tick(idx, restSecs);
+
+  } else if (!tPaused) {
+    // PAUSE
+    clearInterval(tv); tv = null; tPaused = true;
+    _ring(idx,'paused'); _lbl(idx,'paused'); _btn(idx,'resume','▶ Resume');
+
+  } else {
+    // RESUME
+    tPaused = false;
+    _ring(idx,'running'); _lbl(idx,'seconds'); _btn(idx,'pause','⏸ Pause');
+    _tick(idx, restSecs);
+  }
+}
+
+function _tick(idx, restSecs) {
+  _ring(idx,'running'); _btn(idx,'pause','⏸ Pause');
+  document.getElementById('rn-'+idx).innerText = tLeft;
+
+  tv = setInterval(function(){
+    tLeft--;
+    document.getElementById('rn-'+idx).innerText = tLeft;
+    if (tLeft <= 0) {
+      clearInterval(tv); tv = null;
+      _ring(idx,'done');
+      document.getElementById('rn-'+idx).innerText = '✓';
+      _lbl(idx,'Done!');
+      _btn(idx,'locked','✓ Complete');
+      const si = ts;
+      ts = -1; tPaused = false;
+      showRest(restSecs, si+1<TOTAL ? 'Up next — next exercise' : 'Last one!',
+               function(){ advance(si); });
+    }
+  }, 1000);
+}
+
+function resetTimer(idx) {
+  if (tv) { clearInterval(tv); tv = null; }
+  ts = -1; tPaused = false; tLeft = 0;
+  const r = document.getElementById('ring-'+idx);
+  if (r) { r.className='ring-circle'; }
+  const n = document.getElementById('rn-'+idx);
+  if (n) { n.innerText = tDur; }
+  _lbl(idx,'seconds'); _btn(idx,'start','▶ Start Exercise');
+}
+
+function _ring(idx,s){ const r=document.getElementById('ring-'+idx); if(r) r.className='ring-circle'+(s?' '+s:''); }
+function _lbl(idx,t){ const l=document.getElementById('rl-'+idx); if(l) l.innerText=t; }
+function _btn(idx,cls,label){ const b=document.getElementById('ab-'+idx); if(b){b.className='act-btn '+cls;b.innerText=label;} }
+
+
+// ══════════════════════════════════════════════════════════
+// SETS  — locked in order, rest between each, auto-advance
+// ══════════════════════════════════════════════════════════
+function tapSet(idx, si, total, restSecs) {
+  const dot = document.getElementById('sd-'+idx+'-'+si);
+  if (!dot || dot.classList.contains('done')) return;
+  dot.classList.add('done'); dot.disabled = true;
+  if (!sCount[idx]) sCount[idx]=0;
+  sCount[idx]++;
+  const done = sCount[idx], left = total - done;
+  const stat = document.getElementById('ss-'+idx);
+
+  if (done >= total) {
+    stat.innerText = 'All sets done! Resting…';
+    showRest(restSecs, idx+1<TOTAL ? 'Up next — next exercise' : 'Finish!',
+             function(){ advance(idx); });
+  } else {
+    const nd = document.getElementById('sd-'+idx+'-'+done);
+    if (nd) nd.disabled = false;
+    stat.innerText = 'Set '+done+' done — '+left+' set'+(left>1?'s':'')+' left. Rest now.';
+    showRest(restSecs, left+' set'+(left>1?'s':'')+' to go', null);
+  }
+}
+
+
+// ══════════════════════════════════════════════════════════
+// REST OVERLAY
+// ══════════════════════════════════════════════════════════
+function showRest(secs, hint, cb) {
+  if (rv) clearInterval(rv);
+  rCb = cb;
+  document.getElementById('roNum').innerText  = secs;
+  document.getElementById('roHint').innerText = hint||'';
+  document.getElementById('restOv').classList.add('show');
+  let t = secs;
+  rv = setInterval(function(){
+    t--; document.getElementById('roNum').innerText = t;
+    if (t<=0){ clearInterval(rv); rv=null; document.getElementById('restOv').classList.remove('show');
+               if(rCb){const f=rCb;rCb=null;f();} }
+  },1000);
+}
+
+function skipRest(){
+  if(rv){clearInterval(rv);rv=null;}
+  document.getElementById('restOv').classList.remove('show');
+  if(rCb){const f=rCb;rCb=null;f();}
+}
+
+
+// ══════════════════════════════════════════════════════════
+// CAMERA
+// ══════════════════════════════════════════════════════════
+function openCamera(exType){
+  document.getElementById('formModal').classList.add('open');
+  document.getElementById('formFeedback').innerText='Starting camera...';
+  navigator.mediaDevices.getUserMedia({video:true})
+    .then(function(s){
+      cam=s; document.getElementById('camFeed').srcObject=s;
+      document.getElementById('formFeedback').innerText='Camera active. Hold your position.';
+      camIv=setInterval(function(){
+        fetch('/form-check/'+exType).then(r=>r.json()).then(d=>{
+          document.getElementById('formFeedback').innerText=d.message;
+          if(window.speechSynthesis&&d.message){
+            const u=new SpeechSynthesisUtterance(d.message.replace(/[^\w\s.,!?-]/g,''));
+            window.speechSynthesis.cancel(); window.speechSynthesis.speak(u);
+          }
+        }).catch(()=>{});
+      },2500);
+    }).catch(function(){ document.getElementById('formFeedback').innerText='Camera access denied.'; });
+}
+
+function closeCamera(){
+  if(camIv){clearInterval(camIv);camIv=null;}
+  if(cam){cam.getTracks().forEach(t=>t.stop());cam=null;}
+  if(window.speechSynthesis) window.speechSynthesis.cancel();
   document.getElementById('formModal').classList.remove('open');
-  document.getElementById('camFeed').srcObject = null;
+  document.getElementById('camFeed').srcObject=null;
 }
 </script>
 </body></html>
